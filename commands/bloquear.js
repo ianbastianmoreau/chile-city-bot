@@ -2,7 +2,7 @@ module.exports = {
   name: "bloquear",
   async execute(message) {
 
-    const ROL_ID = "1487107921711206481"; // 👈 pega aquí
+    const ROL_ID = "1436890733847253062"; // 👈 pega aquí
     const CATEGORIA_ID = "1436924006400786442"; // 👈 pega aquí
 
     // 🔐 Verificar rol

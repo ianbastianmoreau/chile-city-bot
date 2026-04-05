@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 
-const STAFF_ROLE_ID = "1487107921711206481";
+const STAFF_ROLE_ID = "1436890733847253062";
 
 module.exports = {
   data: new SlashCommandBuilder()

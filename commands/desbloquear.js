@@ -2,7 +2,7 @@ module.exports = {
   name: "desbloquear",
   async execute(message) {
 
-    const ROL_ID = "1487107921711206481"; // 👈 mismo rol
+    const ROL_ID = "1436890733847253062"; // 👈 mismo rol
     const CATEGORIA_ID = "1436924006400786442";
 
     // 🔐 Verificar rol
