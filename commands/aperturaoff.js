@@ -2,21 +2,31 @@ const { EmbedBuilder } = require('discord.js');
 
 module.exports = {
   name: "aperturaoff",
-  async execute(message) {
+  async execute(message, args) {
+
+    const motivo = args[0];
+    const nota = args.slice(1).join(" ");
+
+    if (!motivo || !nota) {
+      return message.reply("❌ Uso correcto: ch!aperturaoff <motivo> <nota>");
+    }
 
     const embed = new EmbedBuilder()
       .setColor("#ff0000")
       .setTitle("🔴 SERVIDOR CERRADO")
       .setDescription(`
-El servidor se encuentra cerrado.
+El servidor se encuentra actualmente cerrado.
 
-🚫 No intentes unirte  
-⏳ Próxima apertura pronto  
+🚫 No intentes ingresar mientras esté cerrado.
+⏳ Se anunciará una nueva apertura próximamente.
+
+📌 **Motivo:** ${motivo}
+📝 **Nota:** ${nota}
 
 👤 Host: ${message.author}
       `)
-      .setImage("https://media.discordapp.net/attachments/1486869005234077746/1490391899792605404/1559708776_2534724415_1775145037530.png?ex=69d3e31f&is=69d2919f&hm=e95caa7772bae6b5cc264e57b396b3ed1b1740775b497173c0504244dd5df61d&=&format=webp&quality=lossless&width=1523&height=800") // 🔥 CAMBIA
-      .setFooter({ text: "Chile City Roleplay" })
+      .setImage("https://media.discordapp.net/attachments/1486869005234077746/1490391899792605404/1559708776_2534724415_1775145037530.png")
+      .setFooter({ text: "Chile City Roleplay • Estado del Servidor" })
       .setTimestamp();
 
     message.channel.send({
