@@ -2,7 +2,6 @@ const { Client, GatewayIntentBits, Collection } = require('discord.js');
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
-const OpenAI = require('openai');
 
 const client = new Client({
   intents: [
@@ -12,117 +11,127 @@ const client = new Client({
   ]
 });
 
-// 🔐 CONFIG
-const STAFF_ROLE_ID = "1487107921711206481";
-
-// 🧠 IA
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_KEY
-});
-
-// 📦 COLECCIONES SEPARADAS
+// 📦 COLECCIONES
 client.prefixCommands = new Collection();
 client.slashCommands = new Collection();
 
-// 📂 CARGAR PREFIX COMMANDS (ch!)
-const prefixPath = path.join(__dirname, 'commands');
-const prefixFiles = fs.readdirSync(prefixPath).filter(file => file.endsWith('.js'));
+const prefix = "ch!";
 
-for (const file of prefixFiles) {
-  const command = require(`./commands/${file}`);
-  if (command.name) {
+// =====================
+// 📌 CARGAR PREFIX COMMANDS
+// =====================
+const prefixPath = path.join(__dirname, 'commands');
+
+if (fs.existsSync(prefixPath)) {
+  const prefixFiles = fs.readdirSync(prefixPath).filter(file => file.endsWith('.js'));
+
+  for (const file of prefixFiles) {
+    const command = require(`./commands/${file}`);
     client.prefixCommands.set(command.name, command);
   }
 }
 
-// 📂 CARGAR SLASH COMMANDS (/)
+// =====================
+// 📌 CARGAR SLASH COMMANDS
+// =====================
 const slashPath = path.join(__dirname, 'slashCommands');
-const slashFiles = fs.readdirSync(slashPath).filter(file => file.endsWith('.js'));
 
-for (const file of slashFiles) {
-  const command = require(`./slashCommands/${file}`);
-  if (command.data) {
+if (fs.existsSync(slashPath)) {
+  const slashFiles = fs.readdirSync(slashPath).filter(file => file.endsWith('.js'));
+
+  for (const file of slashFiles) {
+    const command = require(`./slashCommands/${file}`);
     client.slashCommands.set(command.data.name, command);
   }
 }
 
-// 🚀 READY
-client.on('ready', () => {
+// =====================
+// 🧠 IA GRATIS
+// =====================
+function getAIResponse(messageContent, user) {
+  const msg = messageContent.toLowerCase();
+
+  const respuestas = {
+    saludo: [
+      `👋 Hola ${user}, ¿en qué puedo ayudarte en Chile City Roleplay?`,
+      `¡Hola ${user}! 😊 dime qué necesitas.`,
+      `Buenas ${user} 👀 estoy aquí para ayudarte.`
+    ],
+    entrar: [
+      "Debes esperar una apertura o usar el código **ChileCity** dentro del juego.",
+      "El acceso se habilita cuando el servidor abre, atento a anuncios.",
+      "Usa el código **ChileCity** cuando el servidor esté abierto."
+    ],
+    staff: [
+      "Puedes calificar staff con **/calificar** o postular cuando haya cupos.",
+      "El staff se gestiona por postulaciones, revisa los canales.",
+      "Si tuviste problemas con staff usa los comandos correspondientes."
+    ],
+    bugs: [
+      "Reporta bugs con **/bugs** incluyendo pruebas.",
+      "Mientras más detalles des, mejor podremos solucionarlo.",
+      "Usa el comando **/bugs** para reportar errores."
+    ],
+    comandos: [
+      "Usa **ch!soporte** para ver los comandos disponibles.",
+      "Los comandos están en **ch!soporte**.",
+      "Si necesitas ayuda usa **ch!soporte**."
+    ],
+    default: [
+      "🤖 No entendí bien, intenta explicar mejor o usa **ch!soporte**.",
+      "Puedo ayudarte con el servidor, dame más detalles.",
+      "No tengo esa info exacta, pero dime mejor qué necesitas."
+    ]
+  };
+
+  const random = arr => arr[Math.floor(Math.random() * arr.length)];
+
+  if (msg.includes("hola") || msg.includes("buenas")) return random(respuestas.saludo);
+  if (msg.includes("entrar")) return random(respuestas.entrar);
+  if (msg.includes("staff")) return random(respuestas.staff);
+  if (msg.includes("bug")) return random(respuestas.bugs);
+  if (msg.includes("comando") || msg.includes("ayuda")) return random(respuestas.comandos);
+
+  return random(respuestas.default);
+}
+
+// =====================
+// ✅ BOT LISTO
+// =====================
+client.once('ready', () => {
   console.log(`✅ Bot listo como ${client.user.tag}`);
 });
 
-// 💬 PREFIX COMMANDS (ch!)
+// =====================
+// 📩 MENSAJES
+// =====================
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
-  const prefix = "ch!";
-
+  // PREFIX COMMANDS
   if (message.content.startsWith(prefix)) {
-
     const args = message.content.slice(prefix.length).trim().split(/ +/);
     const commandName = args.shift().toLowerCase();
 
     const command = client.prefixCommands.get(commandName);
-    if (!command) return;
-
-    // 🔐 SOLO STAFF
-    const staffCommands = [
-      "aperturaon",
-      "aperturaoff",
-      "bloquear",
-      "desbloquear",
-      "encuesta",
-      "ban",
-      "sancion",
-      "sancionstaff"
-    ];
-
-    if (staffCommands.includes(commandName)) {
-      if (!message.member.roles.cache.has(STAFF_ROLE_ID)) {
-        return message.reply("❌ No tienes permisos.");
-      }
-    }
-
-    try {
-      await command.execute(message, args);
-    } catch (error) {
-      console.error(error);
-      message.reply("❌ Error ejecutando comando.");
-    }
+    if (command) command.execute(message, args);
   }
 
-  // 🧠 IA REAL
+  // IA GRATIS
   if (message.mentions.has(client.user)) {
-    try {
-
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: "Eres un asistente de un servidor de roleplay llamado Chile City RP. Ayuda de forma clara, amigable y útil."
-          },
-          {
-            role: "user",
-            content: message.content
-          }
-        ]
-      });
-
-      return message.reply(response.choices[0].message.content);
-
-    } catch (error) {
-      console.error(error);
-      return message.reply("❌ Error con la IA.");
-    }
+    const response = getAIResponse(message.content, message.author);
+    return message.reply(response);
   }
 });
 
-// ⚡ SLASH COMMANDS (/)
-client.on('interactionCreate', async interaction => {
+// =====================
+// ⚡ SLASH COMMANDS
+// =====================
+client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
   const command = client.slashCommands.get(interaction.commandName);
+
   if (!command) return;
 
   try {
@@ -131,12 +140,14 @@ client.on('interactionCreate', async interaction => {
     console.error(error);
 
     if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({ content: "❌ Error ejecutando comando", ephemeral: true });
+      interaction.followUp({ content: "❌ Error ejecutando comando.", ephemeral: true });
     } else {
-      await interaction.reply({ content: "❌ Error ejecutando comando", ephemeral: true });
+      interaction.reply({ content: "❌ Error ejecutando comando.", ephemeral: true });
     }
   }
 });
 
-// 🔑 LOGIN
+// =====================
+// 🔐 LOGIN
+// =====================
 client.login(process.env.TOKEN);
