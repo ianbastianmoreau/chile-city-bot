@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, GatewayIntentBits, Collection } = require('discord.js');
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
@@ -12,24 +12,33 @@ const client = new Client({
   ]
 });
 
-// 🔑 CONFIG
 const STAFF_ROLE_ID = "1487107921711206481";
 
+// 🧠 IA
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_KEY
 });
 
-// 📦 COMANDOS
-client.commands = new Map();
+// 📦 COLECCIONES
+client.prefixCommands = new Collection();
+client.slashCommands = new Collection();
 
-const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+// 📂 PREFIX COMMANDS
+const prefixPath = path.join(__dirname, 'commands');
+const prefixFiles = fs.readdirSync(prefixPath).filter(file => file.endsWith('.js'));
 
-for (const file of commandFiles) {
+for (const file of prefixFiles) {
   const command = require(`./commands/${file}`);
+  client.prefixCommands.set(command.name, command);
+}
 
-  if (command.data) client.commands.set(command.data.name, command);
-  if (command.name) client.commands.set(command.name, command);
+// 📂 SLASH COMMANDS
+const slashPath = path.join(__dirname, 'slashCommands');
+const slashFiles = fs.readdirSync(slashPath).filter(file => file.endsWith('.js'));
+
+for (const file of slashFiles) {
+  const command = require(`./slashCommands/${file}`);
+  client.slashCommands.set(command.data.name, command);
 }
 
 // 🚀 READY
@@ -37,31 +46,25 @@ client.on('ready', () => {
   console.log(`✅ Bot listo como ${client.user.tag}`);
 });
 
-// 💬 PREFIX COMMANDS
+// 💬 PREFIX
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
   const prefix = "ch!";
 
-  // 📌 COMANDOS
   if (message.content.startsWith(prefix)) {
-
     const args = message.content.slice(prefix.length).trim().split(/ +/);
     const commandName = args.shift().toLowerCase();
 
-    const command = client.commands.get(commandName);
+    const command = client.prefixCommands.get(commandName);
     if (!command) return;
 
-    // 🔐 SOLO STAFF
     const staffCommands = [
       "aperturaon",
       "aperturaoff",
-      "ban",
       "bloquear",
       "desbloquear",
-      "encuesta",
-      "sancion",
-      "sancionstaff"
+      "encuesta"
     ];
 
     if (staffCommands.includes(commandName)) {
@@ -72,58 +75,48 @@ client.on('messageCreate', async (message) => {
 
     try {
       await command.execute(message, args);
-    } catch (error) {
-      console.error(error);
-      message.reply("❌ Error ejecutando comando.");
+    } catch (err) {
+      console.error(err);
+      message.reply("❌ Error.");
     }
   }
 
-  // 🧠 IA REAL
+  // 🧠 IA
   if (message.mentions.has(client.user)) {
     try {
-
-      const response = await openai.chat.completions.create({
+      const res = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
-          {
-            role: "system",
-            content: "Eres un asistente de un servidor de roleplay llamado Chile City RP. Ayuda de forma clara, amigable y útil."
-          },
-          {
-            role: "user",
-            content: message.content
-          }
+          { role: "system", content: "Eres asistente de Chile City RP." },
+          { role: "user", content: message.content }
         ]
       });
 
-      return message.reply(response.choices[0].message.content);
-
-    } catch (error) {
-      console.error(error);
-      return message.reply("❌ Error con la IA.");
+      return message.reply(res.choices[0].message.content);
+    } catch {
+      return message.reply("❌ Error IA.");
     }
   }
 });
 
-// ⚡ SLASH COMMANDS
+// ⚡ SLASH
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
-  const command = client.commands.get(interaction.commandName);
+  const command = client.slashCommands.get(interaction.commandName);
   if (!command) return;
 
   try {
     await command.execute(interaction);
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error(err);
 
     if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({ content: "❌ Error", ephemeral: true });
+      await interaction.followUp({ content: "❌ Error comando", ephemeral: true });
     } else {
-      await interaction.reply({ content: "❌ Error", ephemeral: true });
+      await interaction.reply({ content: "❌ Error comando", ephemeral: true });
     }
   }
 });
 
-// 🔑 LOGIN
 client.login(process.env.TOKEN);
