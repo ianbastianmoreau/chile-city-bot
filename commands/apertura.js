@@ -1,16 +1,15 @@
-const { EmbedBuilder } = require('discord.js');
+module.exports = {
+  name: "apertura",
+  execute(message) {
+    message.channel.send(`
+I Nombre del Servidor: Chile City RolePlay
+I Codigo: ChileCity
 
-const embed = new EmbedBuilder()
-  .setTitle("🚨 SERVIDOR ABIERTO")
-  .setDescription(`
-**Chile City RolePlay**
+I Recuerda
+I Recuerde leerte las normas antes de entrar para no ser sancionado
+I Host: ${message.author}
 
-Código: ChileCity
-
-Recuerda leer las normas antes de entrar.
-
-Host: ${message.author}
-  `)
-  .setColor("Red");
-
-message.channel.send({ content: "@everyone", embeds: [embed] });
+| Ping: @everyone
+    `);
+  }
+};
