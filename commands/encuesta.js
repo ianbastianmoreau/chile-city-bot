@@ -1,22 +1,28 @@
+const { EmbedBuilder } = require('discord.js');
+
 module.exports = {
   name: "encuesta",
-  async execute(message, args) {
-    const votos = args[0] || "10";
+  async execute(message) {
 
-    const msg = await message.channel.send(`
-I ¿Abrimos Servidor?
+    const embed = new EmbedBuilder()
+      .setColor("#ffaa00")
+      .setTitle("📊 ENCUESTA APERTURA")
+      .setDescription(`
+¿Abrimos servidor?
 
-I Mínima Votos (${votos}) y Abrimos Servidor
+✅ = Me uno  
+❌ = No me uno  
 
-I <:emoji_97:1485677211745783818> I Me Uno
+👤 Host: ${message.author}
+      `)
+      .setImage("https://i.imgur.com/yourimage3.png");
 
-I ❌ I No me Uno
+    const msg = await message.channel.send({
+      content: "@everyone",
+      embeds: [embed]
+    });
 
-I Host: ${message.author}
-
-I @everyone
-    `);
-
+    await msg.react("✅");
     await msg.react("❌");
   }
 };

@@ -1,16 +1,22 @@
+const { EmbedBuilder } = require('discord.js');
+
 module.exports = {
   name: "aperturaoff",
-  execute(message) {
-    message.channel.send(`
-| El Servidor se encuentra cerrado
+  async execute(message) {
 
-| Recordar NO unirse al servidor o serán sancionados.
+    const embed = new EmbedBuilder()
+      .setColor("#ff0000")
+      .setTitle("🔴 SERVIDOR CERRADO")
+      .setDescription(`
+El servidor se encuentra cerrado.
 
-| Se volverá a realizar una apertura dentro del servidor pronto...
+🚫 No intentes unirte  
+⏳ Habrá apertura pronto  
 
-| ¡Espero te hayas divertido!
+👤 Host: ${message.author}
+      `)
+      .setImage("https://i.imgur.com/yourimage2.png");
 
-| Host: ${message.author}
-    `);
+    message.channel.send({ content: "@everyone", embeds: [embed] });
   }
 };

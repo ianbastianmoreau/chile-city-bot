@@ -1,15 +1,24 @@
+const { EmbedBuilder } = require('discord.js');
+
 module.exports = {
-  name: "apertura",
-  execute(message) {
-    message.channel.send(`
-I Nombre del Servidor: Chile City RolePlay
-I Codigo: ChileCity
+  name: "aperturaon",
+  async execute(message) {
 
-I Recuerda
-I Recuerde leerte las normas antes de entrar para no ser sancionado
-I Host: ${message.author}
+    const embed = new EmbedBuilder()
+      .setColor("#00ff88")
+      .setTitle("🟢 SERVIDOR ABIERTO")
+      .setDescription(`
+**Nombre:** Chile City RolePlay  
+**Código:** ChileCity  
 
-| Ping: @everyone
-    `);
+📌 Recuerda leer las normas antes de entrar  
+👤 Host: ${message.author}
+
+¡Servidor abierto, únete ahora!
+      `)
+      .setImage("https://i.imgur.com/yourimage.png")
+      .setFooter({ text: "Chile City Roleplay" });
+
+    message.channel.send({ content: "@everyone", embeds: [embed] });
   }
 };
