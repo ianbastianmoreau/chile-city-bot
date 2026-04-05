@@ -12,7 +12,7 @@ module.exports = {
 
     const embed = new EmbedBuilder()
       .setColor("#ffaa00")
-      .setTitle("📊 ENCUESTA DE APERTURA")
+      .setTitle("📊 ENCUESTA APERTURA")
       .setDescription(`
 ¿Deseas que abramos el servidor?
 
@@ -22,6 +22,7 @@ module.exports = {
 🎯 **Mínimo de votos:** ${minimo}
 
 📌 Una vez alcanzado el mínimo, se procederá a la apertura del servidor.
+🔥 Recorar unirse a una escena al momento de proceder con la apertura del servidor.
 👤 Host: ${message.author}
       `)
       .setImage("https://media.discordapp.net/attachments/1486869005234077746/1490391164296364234/1559708776_2534724415_1775247339066.png")
