@@ -6,14 +6,26 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('ban')
     .setDescription('Banear usuario')
-    .addUserOption(opt => opt.setName('usuario').setRequired(true))
-    .addStringOption(opt => opt.setName('motivo').setRequired(true))
-    .addAttachmentOption(opt => opt.setName('pruebas').setRequired(true)),
+    .addUserOption(opt =>
+      opt.setName('usuario')
+        .setDescription('Usuario a banear')
+        .setRequired(true)
+    )
+    .addStringOption(opt =>
+      opt.setName('motivo')
+        .setDescription('Motivo del baneo')
+        .setRequired(true)
+    )
+    .addAttachmentOption(opt =>
+      opt.setName('pruebas')
+        .setDescription('Pruebas del baneo')
+        .setRequired(true)
+    ),
 
   async execute(interaction) {
 
     if (!interaction.member.roles.cache.has(STAFF_ROLE_ID)) {
-      return await interaction.reply({ content: "❌ No tienes permisos.", ephemeral: true });
+      return interaction.reply({ content: "❌ No tienes permisos.", ephemeral: true });
     }
 
     const embed = new EmbedBuilder()

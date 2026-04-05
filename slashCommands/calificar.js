@@ -4,9 +4,23 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('calificar')
     .setDescription('Calificar staff')
-    .addUserOption(opt => opt.setName('staff').setRequired(true))
-    .addStringOption(opt => opt.setName('razon').setRequired(true))
-    .addIntegerOption(opt => opt.setName('estrellas').setMinValue(1).setMaxValue(5).setRequired(true)),
+    .addUserOption(opt =>
+      opt.setName('staff')
+        .setDescription('Staff a calificar')
+        .setRequired(true)
+    )
+    .addStringOption(opt =>
+      opt.setName('razon')
+        .setDescription('Razón de la calificación')
+        .setRequired(true)
+    )
+    .addIntegerOption(opt =>
+      opt.setName('estrellas')
+        .setDescription('Cantidad de estrellas (1-5)')
+        .setMinValue(1)
+        .setMaxValue(5)
+        .setRequired(true)
+    ),
 
   async execute(interaction) {
 

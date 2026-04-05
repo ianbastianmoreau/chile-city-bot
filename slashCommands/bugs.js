@@ -4,9 +4,21 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('bugs')
     .setDescription('Reportar bug')
-    .addStringOption(opt => opt.setName('tipo').setRequired(true))
-    .addStringOption(opt => opt.setName('situacion').setRequired(true))
-    .addAttachmentOption(opt => opt.setName('pruebas').setRequired(true)),
+    .addStringOption(opt =>
+      opt.setName('tipo')
+        .setDescription('Tipo de bug')
+        .setRequired(true)
+    )
+    .addStringOption(opt =>
+      opt.setName('situacion')
+        .setDescription('Describe el bug')
+        .setRequired(true)
+    )
+    .addAttachmentOption(opt =>
+      opt.setName('pruebas')
+        .setDescription('Imagen del bug')
+        .setRequired(true)
+    ),
 
   async execute(interaction) {
 
