@@ -2,6 +2,7 @@ const { Client, GatewayIntentBits } = require('discord.js');
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
+const OpenAI = require('openai');
 
 const client = new Client({
   intents: [
@@ -11,116 +12,100 @@ const client = new Client({
   ]
 });
 
-// 📦 MAPA DE COMANDOS
+// 🔑 CONFIG
+const STAFF_ROLE_ID = "1487107921711206481";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_KEY
+});
+
+// 📦 COMANDOS
 client.commands = new Map();
 
-// 📂 CARGAR TODOS LOS COMANDOS
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
 for (const file of commandFiles) {
   const command = require(`./commands/${file}`);
 
-  // Slash commands
-  if (command.data) {
-    client.commands.set(command.data.name, command);
-  }
-
-  // Prefix commands
-  if (command.name) {
-    client.commands.set(command.name, command);
-  }
+  if (command.data) client.commands.set(command.data.name, command);
+  if (command.name) client.commands.set(command.name, command);
 }
 
-// 🚀 BOT LISTO
+// 🚀 READY
 client.on('ready', () => {
   console.log(`✅ Bot listo como ${client.user.tag}`);
 });
 
-// 💬 COMANDOS PREFIX (ch!)
+// 💬 PREFIX COMMANDS
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
   const prefix = "ch!";
 
+  // 📌 COMANDOS
   if (message.content.startsWith(prefix)) {
+
     const args = message.content.slice(prefix.length).trim().split(/ +/);
     const commandName = args.shift().toLowerCase();
 
     const command = client.commands.get(commandName);
-
     if (!command) return;
 
+    // 🔐 SOLO STAFF
+    const staffCommands = [
+      "aperturaon",
+      "aperturaoff",
+      "ban",
+      "bloquear",
+      "desbloquear",
+      "encuesta",
+      "sancion",
+      "sancionstaff"
+    ];
+
+    if (staffCommands.includes(commandName)) {
+      if (!message.member.roles.cache.has(STAFF_ROLE_ID)) {
+        return message.reply("❌ No tienes permisos.");
+      }
+    }
+
     try {
-      command.execute(message, args);
+      await command.execute(message, args);
     } catch (error) {
       console.error(error);
-      message.reply("❌ Error al ejecutar comando.");
+      message.reply("❌ Error ejecutando comando.");
     }
   }
 
-  // 🧠 IA MEJORADA
+  // 🧠 IA REAL
   if (message.mentions.has(client.user)) {
+    try {
 
-    const msg = message.content.toLowerCase();
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "Eres un asistente de un servidor de roleplay llamado Chile City RP. Ayuda de forma clara, amigable y útil."
+          },
+          {
+            role: "user",
+            content: message.content
+          }
+        ]
+      });
 
-    const respuestas = {
-      saludo: [
-        "👋 ¡Hola! ¿En qué te puedo ayudar?",
-        "¡Buenas! Bienvenido a Chile City RP 🚓",
-        "👀 Hola, dime qué necesitas"
-      ],
-      entrar: [
-        "Debes esperar una apertura o usar el código ChileCity dentro del juego.",
-        "Para entrar necesitas que el servidor esté abierto o usar el código ChileCity.",
-        "Cuando haya apertura podrás entrar fácilmente con el código."
-      ],
-      staff: [
-        "Puedes calificar staff con /calificar.",
-        "Usa /calificar para evaluar staff.",
-        "El staff está para ayudarte, también puedes evaluarlos."
-      ],
-      bugs: [
-        "Reporta errores con /bugs.",
-        "Si encuentras un problema usa /bugs.",
-        "Los bugs se reportan con /bugs."
-      ],
-      ayuda: [
-        "Usa ch!soporte para ver comandos.",
-        "Escribe ch!soporte para ayudarte.",
-        "Te recomiendo usar ch!soporte."
-      ]
-    };
+      return message.reply(response.choices[0].message.content);
 
-    function random(arr) {
-      return arr[Math.floor(Math.random() * arr.length)];
+    } catch (error) {
+      console.error(error);
+      return message.reply("❌ Error con la IA.");
     }
-
-    if (msg.includes("hola") || msg.includes("buenas")) {
-      return message.reply(random(respuestas.saludo));
-    }
-
-    if (msg.includes("entrar") || msg.includes("codigo")) {
-      return message.reply(random(respuestas.entrar));
-    }
-
-    if (msg.includes("staff") || msg.includes("admin")) {
-      return message.reply(random(respuestas.staff));
-    }
-
-    if (msg.includes("bug") || msg.includes("error")) {
-      return message.reply(random(respuestas.bugs));
-    }
-
-    if (msg.includes("ayuda") || msg.includes("comandos")) {
-      return message.reply(random(respuestas.ayuda));
-    }
-
-    return message.reply("🤖 No entendí bien, usa ch!soporte o dime mejor qué necesitas.");
   }
 });
 
-// ⚡ SLASH COMMANDS (/)
+// ⚡ SLASH COMMANDS
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -133,9 +118,9 @@ client.on('interactionCreate', async interaction => {
     console.error(error);
 
     if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({ content: '❌ Error al ejecutar comando', ephemeral: true });
+      await interaction.followUp({ content: "❌ Error", ephemeral: true });
     } else {
-      await interaction.reply({ content: '❌ Error al ejecutar comando', ephemeral: true });
+      await interaction.reply({ content: "❌ Error", ephemeral: true });
     }
   }
 });
