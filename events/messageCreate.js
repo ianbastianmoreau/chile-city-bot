@@ -1,3 +1,5 @@
+const memory = new Map();
+
 module.exports = {
   name: "messageCreate",
   async execute(message, client) {
@@ -26,64 +28,100 @@ module.exports = {
     }
 
     // =====================
-    // 🧠 IA GRATIS MEJORADA
+    // 🧠 IA PRO
     // =====================
     if (message.mentions.has(client.user)) {
 
+      const userId = message.author.id;
       const msg = message.content.toLowerCase();
 
-      const respuestas = {
-        saludo: [
-          `👋 Hola ${message.author}, ¿en qué puedo ayudarte en Chile City Roleplay?`,
-          `¡Hola ${message.author}! 😊 dime qué necesitas.`,
-          `Buenas ${message.author} 👀 estoy aquí para ayudarte.`
-        ],
-        entrar: [
-          "Debes esperar una apertura del servidor o usar el código **ChileCity** dentro del juego.",
-          "El acceso se habilita cuando el servidor abre, mantente atento a los anuncios.",
-          "Cuando el servidor esté abierto podrás ingresar con el código **ChileCity**."
-        ],
-        staff: [
-          "Puedes calificar staff usando **/calificar** o postular cuando haya vacantes.",
-          "El equipo staff se gestiona mediante postulaciones, revisa los canales correspondientes.",
-          "Si tuviste una experiencia con staff puedes usar **/calificar**."
-        ],
-        bugs: [
-          "Puedes reportar bugs usando **/bugs** con pruebas.",
-          "Mientras más detalles entregues, más rápido se solucionará el problema.",
-          "Usa el comando **/bugs** para reportar errores del servidor."
-        ],
-        comandos: [
-          "Puedes usar **ch!soporte** para ver todos los comandos disponibles.",
-          "Los comandos del servidor están en **ch!soporte**.",
-          "Si necesitas ayuda usa **ch!soporte**."
-        ],
-        default: [
-          "🤖 No entendí completamente tu mensaje, pero puedo ayudarte. Usa **ch!soporte** o sé más específico.",
-          "Puedo ayudarte con dudas del servidor, intenta explicarlo mejor 😊",
-          "No tengo esa información exacta, pero dime más detalles y te ayudo."
-        ]
-      };
+      // 📌 MEMORIA DEL USUARIO
+      if (!memory.has(userId)) {
+        memory.set(userId, []);
+      }
+
+      const userMemory = memory.get(userId);
+
+      userMemory.push(msg);
+
+      if (userMemory.length > 5) {
+        userMemory.shift(); // mantiene últimas 5
+      }
+
+      const contexto = userMemory.join(" | ");
 
       const random = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-      let response;
+      // =====================
+      // RESPUESTAS INTELIGENTES
+      // =====================
+      let respuesta = "";
 
-      if (msg.includes("hola") || msg.includes("buenas") || msg.includes("hello")) {
-        response = random(respuestas.saludo);
-      } else if (msg.includes("entrar") || msg.includes("como entro")) {
-        response = random(respuestas.entrar);
-      } else if (msg.includes("staff")) {
-        response = random(respuestas.staff);
-      } else if (msg.includes("bug") || msg.includes("error")) {
-        response = random(respuestas.bugs);
-      } else if (msg.includes("comando") || msg.includes("ayuda")) {
-        response = random(respuestas.comandos);
-      } else {
-        response = random(respuestas.default);
+      if (msg.includes("hola") || msg.includes("buenas")) {
+        respuesta = random([
+          `👋 Hola ${message.author}, ¿qué necesitas en Chile City Roleplay?`,
+          `Buenas ${message.author} 😎 dime en qué te ayudo.`,
+          `Hola ${message.author}, estoy activo para ayudarte.`
+        ]);
       }
 
-      return message.reply(response);
+      else if (msg.includes("entrar")) {
+        respuesta = random([
+          "Para ingresar debes esperar una apertura o usar el código **ChileCity** dentro del juego.",
+          "El servidor abre por anuncios, mantente atento. Código: **ChileCity**.",
+          "Cuando haya apertura podrás entrar con el código **ChileCity**."
+        ]);
+      }
+
+      else if (msg.includes("staff")) {
+        respuesta = random([
+          "Puedes postular a staff cuando se abran cupos o usar **/calificar**.",
+          "El staff se gestiona por postulaciones, revisa los canales.",
+          "Si tuviste una experiencia con staff puedes calificarlo con **/calificar**."
+        ]);
+      }
+
+      else if (msg.includes("bug") || msg.includes("error")) {
+        respuesta = random([
+          "Puedes reportar bugs usando **/bugs** con pruebas.",
+          "Recuerda adjuntar imagen al reportar un bug.",
+          "Usa **/bugs** para que el staff pueda revisarlo."
+        ]);
+      }
+
+      else if (msg.includes("gracias")) {
+        respuesta = random([
+          "😎 Para eso estoy.",
+          "Un gusto ayudarte.",
+          "Cuando necesites algo más, aquí estoy."
+        ]);
+      }
+
+      else if (msg.includes("quien eres")) {
+        respuesta = random([
+          "Soy el asistente oficial de Chile City Roleplay 🤖",
+          "Estoy aquí para ayudarte con todo lo del servidor.",
+          "Soy el bot encargado de asistencia y soporte."
+        ]);
+      }
+
+      else {
+
+        // 🧠 RESPUESTA CONTEXTUAL (CLAVE PRO)
+        if (contexto.includes("entrar")) {
+          respuesta = "Si sigues con dudas sobre cómo entrar, recuerda: debes esperar apertura o usar el código **ChileCity**.";
+        } else if (contexto.includes("staff")) {
+          respuesta = "Sobre staff, revisa postulaciones o usa **/calificar** si es evaluación.";
+        } else {
+          respuesta = random([
+            "🤖 No entendí completamente, pero puedo ayudarte si me das más detalles.",
+            "Explícame mejor lo que necesitas y te ayudo.",
+            "Estoy para ayudarte con el servidor, intenta ser más específico."
+          ]);
+        }
+      }
+
+      return message.reply(respuesta);
     }
   }
 };
