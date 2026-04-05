@@ -6,26 +6,26 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('ban')
     .setDescription('Banear usuario')
-    .addUserOption(opt => opt.setName('usuario').setDescription('Usuario').setRequired(true))
-    .addStringOption(opt => opt.setName('motivo').setDescription('Motivo').setRequired(true)),
+    .addUserOption(opt => opt.setName('usuario').setRequired(true))
+    .addStringOption(opt => opt.setName('motivo').setRequired(true))
+    .addAttachmentOption(opt => opt.setName('pruebas').setRequired(true)),
 
   async execute(interaction) {
 
     if (!interaction.member.roles.cache.has(STAFF_ROLE_ID)) {
-      return interaction.reply({ content: "❌ No tienes permisos.", ephemeral: true });
+      return await interaction.reply({ content: "❌ No tienes permisos.", ephemeral: true });
     }
-
-    const user = interaction.options.getUser('usuario');
-    const motivo = interaction.options.getString('motivo');
 
     const embed = new EmbedBuilder()
       .setColor("#8b0000")
       .setTitle("🔨 BANEO")
       .setDescription(`
-👤 Usuario: ${user}
-📌 Motivo: ${motivo}
+👤 Usuario: ${interaction.options.getUser('usuario')}
+📌 Motivo: ${interaction.options.getString('motivo')}
 👮 Staff: ${interaction.user}
-      `);
+      `)
+      .setImage(interaction.options.getAttachment('pruebas').url)
+      .setTimestamp();
 
     await interaction.reply({ embeds: [embed] });
   }

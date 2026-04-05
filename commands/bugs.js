@@ -4,9 +4,9 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('bugs')
     .setDescription('Reportar bug')
-    .addStringOption(opt => opt.setName('tipo').setDescription('Tipo de bug').setRequired(true))
-    .addStringOption(opt => opt.setName('situacion').setDescription('Situación').setRequired(true))
-    .addStringOption(opt => opt.setName('pruebas').setDescription('Pruebas').setRequired(true)),
+    .addStringOption(opt => opt.setName('tipo').setRequired(true))
+    .addStringOption(opt => opt.setName('situacion').setRequired(true))
+    .addAttachmentOption(opt => opt.setName('pruebas').setRequired(true)),
 
   async execute(interaction) {
 
@@ -16,9 +16,10 @@ module.exports = {
       .setDescription(`
 📂 Tipo: ${interaction.options.getString('tipo')}
 📌 Situación: ${interaction.options.getString('situacion')}
-📸 Pruebas: ${interaction.options.getString('pruebas')}
 👤 Usuario: ${interaction.user}
-      `);
+      `)
+      .setImage(interaction.options.getAttachment('pruebas').url)
+      .setTimestamp();
 
     await interaction.reply({ embeds: [embed] });
   }

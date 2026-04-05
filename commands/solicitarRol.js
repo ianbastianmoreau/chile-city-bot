@@ -4,8 +4,8 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('solicitarrol')
     .setDescription('Solicitar rol')
-    .addStringOption(opt => opt.setName('rol').setDescription('Rol solicitado').setRequired(true))
-    .addStringOption(opt => opt.setName('pruebas').setDescription('Pruebas').setRequired(true)),
+    .addStringOption(opt => opt.setName('rol').setRequired(true))
+    .addAttachmentOption(opt => opt.setName('pruebas').setRequired(true)),
 
   async execute(interaction) {
 
@@ -14,9 +14,10 @@ module.exports = {
       .setTitle("📩 SOLICITUD DE ROL")
       .setDescription(`
 👤 Usuario: ${interaction.user}
-🎭 Rol: ${interaction.options.getString('rol')}
-📸 Pruebas: ${interaction.options.getString('pruebas')}
-      `);
+🎭 Rol solicitado: ${interaction.options.getString('rol')}
+      `)
+      .setImage(interaction.options.getAttachment('pruebas').url)
+      .setTimestamp();
 
     await interaction.reply({ embeds: [embed] });
   }

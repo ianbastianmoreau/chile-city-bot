@@ -11,14 +11,22 @@ const client = new Client({
   ]
 });
 
-// 📦 CARGAR COMANDOS
+// 📦 MAPA DE COMANDOS
 client.commands = new Map();
 
+// 📂 CARGAR TODOS LOS COMANDOS
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
 for (const file of commandFiles) {
   const command = require(`./commands/${file}`);
+
+  // Slash commands
+  if (command.data) {
+    client.commands.set(command.data.name, command);
+  }
+
+  // Prefix commands
   if (command.name) {
     client.commands.set(command.name, command);
   }
@@ -29,25 +37,25 @@ client.on('ready', () => {
   console.log(`✅ Bot listo como ${client.user.tag}`);
 });
 
-// 💬 MENSAJES
+// 💬 COMANDOS PREFIX (ch!)
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
   const prefix = "ch!";
 
-  // 📌 COMANDOS PREFIX
   if (message.content.startsWith(prefix)) {
     const args = message.content.slice(prefix.length).trim().split(/ +/);
     const commandName = args.shift().toLowerCase();
 
     const command = client.commands.get(commandName);
-    if (command) {
-      try {
-        command.execute(message, args);
-      } catch (error) {
-        console.error(error);
-        message.reply("❌ Hubo un error al ejecutar el comando.");
-      }
+
+    if (!command) return;
+
+    try {
+      command.execute(message, args);
+    } catch (error) {
+      console.error(error);
+      message.reply("❌ Error al ejecutar comando.");
     }
   }
 
@@ -62,29 +70,25 @@ client.on('messageCreate', async (message) => {
         "¡Buenas! Bienvenido a Chile City RP 🚓",
         "👀 Hola, dime qué necesitas"
       ],
-
       entrar: [
         "Debes esperar una apertura o usar el código ChileCity dentro del juego.",
         "Para entrar necesitas que el servidor esté abierto o usar el código ChileCity.",
-        "Cuando haya apertura podrás entrar fácilmente con el código del servidor."
+        "Cuando haya apertura podrás entrar fácilmente con el código."
       ],
-
       staff: [
-        "Puedes calificar al staff usando /calificar.",
-        "Si quieres interactuar con staff usa los comandos disponibles como /calificar.",
-        "El staff está para ayudarte, también puedes evaluarlos con /calificar."
+        "Puedes calificar staff con /calificar.",
+        "Usa /calificar para evaluar staff.",
+        "El staff está para ayudarte, también puedes evaluarlos."
       ],
-
       bugs: [
-        "Puedes reportar errores usando el comando /bugs.",
-        "Si encontraste un problema usa /bugs para reportarlo.",
-        "Los bugs se reportan con /bugs, incluye pruebas si puedes."
+        "Reporta errores con /bugs.",
+        "Si encuentras un problema usa /bugs.",
+        "Los bugs se reportan con /bugs."
       ],
-
       ayuda: [
-        "Puedes usar ch!soporte para ver comandos disponibles.",
-        "Escribe ch!soporte y verás todo lo que puedes hacer.",
-        "Te recomiendo usar ch!soporte para orientarte mejor."
+        "Usa ch!soporte para ver comandos.",
+        "Escribe ch!soporte para ayudarte.",
+        "Te recomiendo usar ch!soporte."
       ]
     };
 
@@ -112,9 +116,27 @@ client.on('messageCreate', async (message) => {
       return message.reply(random(respuestas.ayuda));
     }
 
-    return message.reply(
-      "🤖 No entendí completamente, pero puedo ayudarte.\n👉 Usa ch!soporte o dime mejor qué necesitas."
-    );
+    return message.reply("🤖 No entendí bien, usa ch!soporte o dime mejor qué necesitas.");
+  }
+});
+
+// ⚡ SLASH COMMANDS (/)
+client.on('interactionCreate', async interaction => {
+  if (!interaction.isChatInputCommand()) return;
+
+  const command = client.commands.get(interaction.commandName);
+  if (!command) return;
+
+  try {
+    await command.execute(interaction);
+  } catch (error) {
+    console.error(error);
+
+    if (interaction.replied || interaction.deferred) {
+      await interaction.followUp({ content: '❌ Error al ejecutar comando', ephemeral: true });
+    } else {
+      await interaction.reply({ content: '❌ Error al ejecutar comando', ephemeral: true });
+    }
   }
 });
 

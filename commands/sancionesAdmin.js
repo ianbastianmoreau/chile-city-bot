@@ -6,14 +6,14 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('sancionstaff')
     .setDescription('Sancionar staff')
-    .addUserOption(opt => opt.setName('staff').setDescription('Staff').setRequired(true))
-    .addStringOption(opt => opt.setName('razon').setDescription('Razón').setRequired(true))
-    .addIntegerOption(opt => opt.setName('numero').setDescription('Número sanción').setRequired(true)),
+    .addUserOption(opt => opt.setName('staff').setRequired(true))
+    .addStringOption(opt => opt.setName('razon').setRequired(true))
+    .addIntegerOption(opt => opt.setName('numero').setRequired(true)),
 
   async execute(interaction) {
 
     if (!interaction.member.roles.cache.has(STAFF_ROLE_ID)) {
-      return interaction.reply({ content: "❌ No tienes permisos.", ephemeral: true });
+      return await interaction.reply({ content: "❌ No tienes permisos.", ephemeral: true });
     }
 
     const embed = new EmbedBuilder()
@@ -24,7 +24,8 @@ module.exports = {
 📌 Razón: ${interaction.options.getString('razon')}
 🔢 Nº: ${interaction.options.getInteger('numero')}/5
 👤 Responsable: ${interaction.user}
-      `);
+      `)
+      .setTimestamp();
 
     await interaction.reply({ embeds: [embed] });
   }
