@@ -1,7 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
 
-const STAFF_ROLE_ID = "1436890733847253062";
-
 module.exports = {
   name: "aperturaon",
   async execute(message, args) {
