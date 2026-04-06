@@ -2,36 +2,31 @@ const { EmbedBuilder } = require('discord.js');
 
 module.exports = {
   name: "encuesta",
-  async execute(message, args) {
+  async execute(message, args, client) {
 
-    const minimo = args[0];
-
-    if (!minimo || isNaN(minimo)) {
-      return message.reply("❌ Debes indicar el mínimo de votos. Ej: ch!encuesta 10");
+    if (!client.tienePermiso(message.member, "encuesta", client)) {
+      return message.reply("❌ No tienes permisos.");
     }
+
+    const minimo = parseInt(args[0]);
+    if (!minimo) return message.reply("❌ Debes poner votos mínimos.");
 
     const embed = new EmbedBuilder()
       .setColor("#ffaa00")
-      .setTitle("📊 ENCUESTA APERTURA")
+      .setTitle("📊 ENCUESTA DE APERTURA")
       .setDescription(`
-¿Deseas que abramos el servidor?
+¿Abrimos servidor?
 
-🟢 = Me uno  
-🔴 = No me uno  
+🟢 = Sí  
+🔴 = No  
 
-🎯 **Mínimo de votos:** ${minimo}
-
-📌 Una vez alcanzado el mínimo, se procederá a la apertura del servidor.
+🎯 Votos mínimos: ${minimo}
 👤 Host: ${message.author}
       `)
-      .setImage("https://media.discordapp.net/attachments/1486869005234077746/1490391164296364234/1559708776_2534724415_1775247339066.png")
-      .setFooter({ text: "Chile City Roleplay • Sistema de Encuestas" })
+      .setImage("https://media.discordapp.net/attachments/1486869005234077746/1490391164296364234/1559708776_2534724415_1775247339066.png?ex=69d3e26f&is=69d290ef&hm=9e0277f985de4874c907e0bba84565c630b97fb9a7762aad2b1819785b5dcf07&=&format=webp&quality=lossless&width=1423&height=800")
       .setTimestamp();
 
-    const msg = await message.channel.send({
-      content: "@everyone",
-      embeds: [embed]
-    });
+    const msg = await message.channel.send({ content: "@everyone", embeds: [embed] });
 
     await msg.react("🟢");
     await msg.react("🔴");

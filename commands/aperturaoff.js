@@ -2,36 +2,28 @@ const { EmbedBuilder } = require('discord.js');
 
 module.exports = {
   name: "aperturaoff",
-  async execute(message, args) {
+  async execute(message, args, client) {
 
-    const motivo = args[0];
-    const nota = args.slice(1).join(" ");
-
-    if (!motivo || !nota) {
-      return message.reply("❌ Uso correcto: ch!aperturaoff <motivo> <nota>");
+    if (!client.tienePermiso(message.member, "aperturaoff", client)) {
+      return message.reply("❌ No tienes permisos.");
     }
+
+    const motivo = args.join(" ") || "Sin motivo especificado.";
 
     const embed = new EmbedBuilder()
       .setColor("#ff0000")
       .setTitle("🔴 SERVIDOR CERRADO")
       .setDescription(`
-El servidor se encuentra actualmente cerrado.
+El servidor ha sido cerrado.
 
-🚫 No intentes ingresar mientras esté cerrado.
-⏳ Se anunciará una nueva apertura próximamente.
+📌 Motivo: ${motivo}
 
-📌 **Motivo:** ${motivo}
-📝 **Nota:** ${nota}
-
+⏳ Próxima apertura pronto.
 👤 Host: ${message.author}
       `)
-      .setImage("https://media.discordapp.net/attachments/1486869005234077746/1490391899792605404/1559708776_2534724415_1775145037530.png")
-      .setFooter({ text: "Chile City Roleplay • Estado del Servidor" })
+      .setImage("https://media.discordapp.net/attachments/1486869005234077746/1490391899792605404/1559708776_2534724415_1775145037530.png?ex=69d3e31f&is=69d2919f&hm=e95caa7772bae6b5cc264e57b396b3ed1b1740775b497173c0504244dd5df61d&=&format=webp&quality=lossless&width=1523&height=800")
       .setTimestamp();
 
-    message.channel.send({
-      content: "@everyone",
-      embeds: [embed]
-    });
+    message.channel.send({ content: "@everyone", embeds: [embed] });
   }
 };

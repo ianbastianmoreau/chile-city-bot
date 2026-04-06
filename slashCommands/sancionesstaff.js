@@ -1,40 +1,40 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 
-const STAFF_ROLE_ID = "1436890733847253062";
+const staffRoles = {
+  1: "1490546310502154261",
+  2: "1490546333831004421",
+  3: "1490546363413565460",
+  4: "1490546405553737768",
+  5: "1490546431734583456"
+};
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('sancionstaff')
     .setDescription('Sancionar staff')
-    .addUserOption(opt =>
-      opt.setName('staff')
-        .setDescription('Staff sancionado')
-        .setRequired(true)
-    )
-    .addStringOption(opt =>
-      opt.setName('razon')
-        .setDescription('Razón de la sanción')
-        .setRequired(true)
-    )
-    .addIntegerOption(opt =>
-      opt.setName('numero')
-        .setDescription('Número de sanción')
-        .setRequired(true)
-    ),
+    .addUserOption(o => o.setName('staff').setRequired(true))
+    .addStringOption(o => o.setName('razon').setRequired(true))
+    .addIntegerOption(o => o.setName('numero').setMinValue(1).setMaxValue(5).setRequired(true)),
 
   async execute(interaction) {
 
-    if (!interaction.member.roles.cache.has(STAFF_ROLE_ID)) {
+    if (!interaction.client.tienePermiso(interaction.member, "sancionstaff", interaction.client)) {
       return interaction.reply({ content: "❌ No tienes permisos.", ephemeral: true });
     }
 
+    const user = interaction.options.getMember('staff');
+    const num = interaction.options.getInteger('numero');
+
+    const role = interaction.guild.roles.cache.get(staffRoles[num]);
+    if (role) await user.roles.add(role);
+
     const embed = new EmbedBuilder()
-      .setColor("#ff0000")
+      .setColor("#ff5555")
       .setTitle("⚖️ SANCIÓN STAFF")
       .setDescription(`
-👮 Staff: ${interaction.options.getUser('staff')}
+👮 Staff: ${user}
 📌 Razón: ${interaction.options.getString('razon')}
-🔢 Nº: ${interaction.options.getInteger('numero')}/5
+🔢 Nivel: ${num}/5
 👤 Responsable: ${interaction.user}
       `)
       .setTimestamp();

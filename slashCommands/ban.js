@@ -1,42 +1,46 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 
-const STAFF_ROLE_ID = "1436890733847253062";
+const banRoles = {
+  1: "1490544766314614814",
+  2: "1490544785369469008",
+  3: "1490544789056262204"
+};
+
+const nombres = {
+  1: "Expulsión",
+  2: "Baneo",
+  3: "Vetado"
+};
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('ban')
-    .setDescription('Banear usuario')
-    .addUserOption(opt =>
-      opt.setName('usuario')
-        .setDescription('Usuario a banear')
-        .setRequired(true)
-    )
-    .addStringOption(opt =>
-      opt.setName('motivo')
-        .setDescription('Motivo del baneo')
-        .setRequired(true)
-    )
-    .addAttachmentOption(opt =>
-      opt.setName('pruebas')
-        .setDescription('Pruebas del baneo')
-        .setRequired(true)
-    ),
+    .setDescription('Castigo escalado')
+    .addUserOption(o => o.setName('usuario').setRequired(true))
+    .addStringOption(o => o.setName('motivo').setRequired(true))
+    .addIntegerOption(o => o.setName('nivel').setMinValue(1).setMaxValue(3).setRequired(true)),
 
   async execute(interaction) {
 
-    if (!interaction.member.roles.cache.has(STAFF_ROLE_ID)) {
+    if (!interaction.client.tienePermiso(interaction.member, "ban", interaction.client)) {
       return interaction.reply({ content: "❌ No tienes permisos.", ephemeral: true });
     }
 
+    const user = interaction.options.getMember('usuario');
+    const nivel = interaction.options.getInteger('nivel');
+
+    const role = interaction.guild.roles.cache.get(banRoles[nivel]);
+    if (role) await user.roles.add(role);
+
     const embed = new EmbedBuilder()
       .setColor("#8b0000")
-      .setTitle("🔨 BANEO")
+      .setTitle("🔨 CASTIGO")
       .setDescription(`
-👤 Usuario: ${interaction.options.getUser('usuario')}
+👤 Usuario: ${user}
 📌 Motivo: ${interaction.options.getString('motivo')}
+🚨 Tipo: ${nombres[nivel]}
 👮 Staff: ${interaction.user}
       `)
-      .setImage(interaction.options.getAttachment('pruebas').url)
       .setTimestamp();
 
     await interaction.reply({ embeds: [embed] });
