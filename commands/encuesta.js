@@ -8,25 +8,40 @@ module.exports = {
       return message.reply("❌ No tienes permisos.");
     }
 
+    // 📌 validar votos mínimos
     const minimo = parseInt(args[0]);
-    if (!minimo) return message.reply("❌ Debes poner votos mínimos.");
+    if (!minimo || minimo <= 0) {
+      return message.reply("❌ Debes indicar un número válido de votos mínimos.");
+    }
+
+    // 📌 validar encargado
+    const encargado = message.mentions.users.first();
+    if (!encargado) {
+      return message.reply("❌ Debes mencionar al encargado de moderación.");
+    }
 
     const embed = new EmbedBuilder()
       .setColor("#ffaa00")
       .setTitle("📊 ENCUESTA DE APERTURA")
       .setDescription(`
-¿Abrimos servidor?
+Se está evaluando una posible apertura del servidor.
 
-🟢 = Sí  
-🔴 = No  
+🟢 = Me uno  
+🔴 = No me uno  
 
-🎯 Votos mínimos: ${minimo}
-👤 Host: ${message.author}
+🎯 Votos mínimos requeridos: **${minimo}**
+👮 Encargado de moderación: ${encargado}
+
+📌 Tu voto influye en futuras aperturas del servidor.
       `)
       .setImage("https://media.discordapp.net/attachments/1486869005234077746/1490391164296364234/1559708776_2534724415_1775247339066.png?ex=69d3e26f&is=69d290ef&hm=9e0277f985de4874c907e0bba84565c630b97fb9a7762aad2b1819785b5dcf07&=&format=webp&quality=lossless&width=1423&height=800")
+      .setFooter({ text: "Chile City Roleplay" })
       .setTimestamp();
 
-    const msg = await message.channel.send({ content: "@everyone", embeds: [embed] });
+    const msg = await message.channel.send({
+      content: "@everyone",
+      embeds: [embed]
+    });
 
     await msg.react("🟢");
     await msg.react("🔴");
