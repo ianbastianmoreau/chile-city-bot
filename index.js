@@ -18,18 +18,14 @@ client.permisos = {
   "aperturaon": "1487107921711206481",
   "aperturaoff": "1487107921711206481",
   "encuesta": "1487107921711206481",
-
   "activity": "1487107921711206481",
   "agradecer": "1487107921711206481",
-
   "entrar-mod": "1487107921711206481",
   "salir-mod": "1487107921711206481",
-
   "advertencia": "1487107921711206481",
   "ban": "1487107921711206481",
   "comunicado": "1487107921711206481",
   "sancion": "1487107921711206481",
-
   "sancionstaff": "1487107921711206481"
 };
 
@@ -66,11 +62,6 @@ for (const file of slashFiles) {
 }
 
 // =======================
-// 🧠 IA SIMPLE CON MEMORIA
-// =======================
-const memory = new Map();
-
-// =======================
 // 🚀 READY
 // =======================
 client.on('ready', () => {
@@ -78,28 +69,32 @@ client.on('ready', () => {
 });
 
 // =======================
-// 💬 MENSAJES (PREFIX + IA)
+// 💬 PREFIX COMMANDS
 // =======================
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
   const prefix = "ch!";
 
-  // PREFIX
-  if (message.content.startsWith(prefix)) {
-    const args = message.content.slice(prefix.length).trim().split(/ +/);
-    const commandName = args.shift().toLowerCase();
+  if (!message.content.startsWith(prefix)) return;
 
-    const command = client.prefixCommands.get(commandName);
-    if (!command) return;
+  const args = message.content.slice(prefix.length).trim().split(/ +/);
+  const commandName = args.shift().toLowerCase();
 
-    if (!client.tienePermiso(message.member, commandName, client)) {
-      return message.reply("❌ No tienes permisos.");
-    }
+  const command = client.prefixCommands.get(commandName);
+  if (!command) return;
 
-    command.execute(message, args, client);
+  if (!client.tienePermiso(message.member, commandName, client)) {
+    return message.reply("❌ No tienes permisos.");
   }
 
+  try {
+    await command.execute(message, args, client);
+  } catch (error) {
+    console.error(error);
+    message.reply("❌ Error en el comando.");
+  }
+});
 
 // =======================
 // ⚡ SLASH COMMANDS
@@ -118,8 +113,11 @@ client.on('interactionCreate', async interaction => {
     await command.execute(interaction);
   } catch (error) {
     console.error(error);
-    interaction.reply({ content: "❌ Error.", ephemeral: true });
+    interaction.reply({ content: "❌ Error en el comando.", ephemeral: true });
   }
 });
 
+// =======================
+// 🔐 LOGIN
+// =======================
 client.login(process.env.TOKEN);
