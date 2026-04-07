@@ -15,10 +15,17 @@ const nombres = {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('ban')
-    .setDescription('Castigo escalado')
-    .addUserOption(o => o.setName('usuario').setRequired(true))
-    .addStringOption(o => o.setName('motivo').setRequired(true))
-    .addIntegerOption(o => o.setName('nivel').setMinValue(1).setMaxValue(3).setRequired(true)),
+    .setDescription('Sistema de castigo escalado')
+    .addUserOption(o =>
+      o.setName('usuario').setDescription('Usuario').setRequired(true))
+    .addStringOption(o =>
+      o.setName('motivo').setDescription('Motivo').setRequired(true))
+    .addIntegerOption(o =>
+      o.setName('nivel')
+        .setDescription('Nivel de castigo')
+        .setMinValue(1)
+        .setMaxValue(3)
+        .setRequired(true)),
 
   async execute(interaction) {
 
@@ -34,12 +41,15 @@ module.exports = {
 
     const embed = new EmbedBuilder()
       .setColor("#8b0000")
-      .setTitle("🔨 CASTIGO")
+      .setTitle("🔨 SISTEMA DE CASTIGO")
       .setDescription(`
 👤 Usuario: ${user}
 📌 Motivo: ${interaction.options.getString('motivo')}
 🚨 Tipo: ${nombres[nivel]}
+🔢 Nivel: ${nivel}/3
 👮 Staff: ${interaction.user}
+
+⚠️ Este castigo ha sido aplicado según normativa del servidor.
       `)
       .setTimestamp();
 

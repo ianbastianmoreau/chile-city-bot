@@ -7,6 +7,6 @@ module.exports = {
 
     if (!user) return message.reply("❌ Menciona usuario.");
 
-    message.channel.send(`💎 Gracias ${user} por boost nivel ${nivel}`);
+    return message.channel.send(`💎 Gracias ${user} por boost nivel ${nivel}`);
   }
 };

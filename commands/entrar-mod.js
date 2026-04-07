@@ -6,6 +6,7 @@ module.exports = {
 
     tiempos.set(message.author.id, Date.now());
 
-    message.reply(`✅ Iniciaste servicio ${message.author}`);
+    message.reply(`🟢 - Moderación Iniciada  
+Has iniciado tu servicio de moderación perfectamente ${message.author}`);
   }
 };

@@ -100,26 +100,6 @@ client.on('messageCreate', async (message) => {
     command.execute(message, args, client);
   }
 
-  // IA
-  if (message.mentions.has(client.user)) {
-
-    const msg = message.content.toLowerCase();
-    const userId = message.author.id;
-
-    if (!memory.has(userId)) memory.set(userId, []);
-    const userMemory = memory.get(userId);
-
-    userMemory.push(msg);
-    if (userMemory.length > 10) userMemory.shift();
-
-    let respuesta = "🤖 Explícame mejor y te ayudo.";
-
-    if (msg.includes("hola")) respuesta = `👋 Hola ${message.author}`;
-    if (msg.includes("entrar")) respuesta = "Usa código ChileCity cuando haya apertura.";
-
-    message.reply(respuesta);
-  }
-});
 
 // =======================
 // ⚡ SLASH COMMANDS

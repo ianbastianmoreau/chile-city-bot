@@ -12,6 +12,9 @@ module.exports = {
 
     tiempos.delete(message.author.id);
 
-    message.reply(`🕒 Tiempo: ${minutos} minutos`);
+    message.reply(`🔴 - Moderación Finalizada  
+Has finalizado tu servicio de moderación perfectamente ${message.author}
+
+🕒 Tiempo total: ${minutos} minutos`);
   }
 };

@@ -1,24 +1,24 @@
 const { EmbedBuilder } = require('discord.js');
 
 module.exports = {
-  name: "aceptar",
+  name: "rechazar",
   async execute(message, args) {
 
     const user = message.mentions.users.first();
     const trabajo = args.slice(1).join(" ");
 
     if (!user || !trabajo) {
-      return message.reply("❌ Uso: ch!aceptar @usuario trabajo");
+      return message.reply("❌ Uso: ch!rechazar @usuario trabajo");
     }
 
     const embed = new EmbedBuilder()
-      .setColor("#00ff88")
-      .setTitle("✅ POSTULACIÓN ACEPTADA")
+      .setColor("#ff0000")
+      .setTitle("❌ POSTULACIÓN RECHAZADA")
       .setDescription(`
 👤 Usuario: ${user}
 💼 Trabajo: ${trabajo}
 
-🎉 ¡Felicidades! Has sido aceptado en el puesto.
+📌 Puedes volver a postular en futuras convocatorias.
       `)
       .setTimestamp();
 

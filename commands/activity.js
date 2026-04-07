@@ -1,14 +1,25 @@
+let contador = 1;
+let meta = 10;
+
 module.exports = {
   name: "activity",
   async execute(message, args) {
 
-    const cantidad = parseInt(args[0]);
-    if (!cantidad) return message.reply("❌ Número inválido.");
+    contador++;
+    meta += Math.floor(Math.random() * 3) + 1;
 
-    const msg = await message.channel.send("Hola @✅・Miembro Verificado de CHC:RP hoy estaremos haciendo un activity ckeck, De que consiste este activity check? tomar la actividad del servidor para proximas aperturas u otro tipo de cosas.!:");
+    const msg = await message.channel.send(`
+# Activity Check ${contador}
 
-    for (let i = 0; i < cantidad; i++) {
-      await msg.react("✅");
-    }
+Hola <@&1451096471922413639> de CHC:RP hoy estaremos haciendo un activity check con el objetivo de ver la actividad.
+
+Meta actual: ${meta}
+
+Reaccionar al mensaje!
+
+@everyone
+    `);
+
+    await msg.react("<:emoji:1485677211745783818>");
   }
 };
