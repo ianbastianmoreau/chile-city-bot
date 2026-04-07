@@ -13,7 +13,7 @@ module.exports = {
     .setName('sancionstaff')
     .setDescription('Sancionar miembro del staff')
     .addUserOption(o =>
-      o.setName('staff').setDescription('Staff').setRequired(true))
+      o.setName('staff').setDescription('Miembro del staff').setRequired(true))
     .addStringOption(o =>
       o.setName('razon').setDescription('Razón').setRequired(true))
     .addIntegerOption(o =>
@@ -24,30 +24,36 @@ module.exports = {
         .setRequired(true)),
 
   async execute(interaction) {
+    await interaction.deferReply();
 
     if (!interaction.client.tienePermiso(interaction.member, "sancionstaff", interaction.client)) {
-      return interaction.reply({ content: "❌ No tienes permisos.", ephemeral: true });
+      return interaction.editReply("❌ No tienes permisos.");
     }
 
-    const user = interaction.options.getMember('staff');
+    const user = interaction.options.getUser('staff');
+    const member = interaction.guild.members.cache.get(user.id);
     const nivel = interaction.options.getInteger('numero');
 
-    const role = interaction.guild.roles.cache.get(staffRoles[nivel]);
-    if (role) await user.roles.add(role);
+    try {
+      const role = interaction.guild.roles.cache.get(staffRoles[nivel]);
+      if (role && member) await member.roles.add(role);
+    } catch (err) {
+      console.error(err);
+    }
 
     const embed = new EmbedBuilder()
       .setColor("#ff5555")
       .setTitle("🛡️ SANCIÓN STAFF")
       .setDescription(`
-👮 Staff: ${user}
+👮 Staff: <@${user.id}>
 📌 Razón: ${interaction.options.getString('razon')}
 🔢 Nivel: ${nivel}/5
 👤 Responsable: ${interaction.user}
 
-⚠️ El incumplimiento reiterado puede llevar a la expulsión del staff.
+⚠️ El incumplimiento reiterado puede llevar a expulsión del staff.
       `)
       .setTimestamp();
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   }
 };

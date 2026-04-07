@@ -16,43 +16,39 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('ban')
     .setDescription('Sistema de castigo escalado')
-    .addUserOption(o =>
-      o.setName('usuario').setDescription('Usuario').setRequired(true))
-    .addStringOption(o =>
-      o.setName('motivo').setDescription('Motivo').setRequired(true))
-    .addIntegerOption(o =>
-      o.setName('nivel')
-        .setDescription('Nivel de castigo')
-        .setMinValue(1)
-        .setMaxValue(3)
-        .setRequired(true)),
+    .addUserOption(o => o.setName('usuario').setDescription('Usuario').setRequired(true))
+    .addStringOption(o => o.setName('motivo').setDescription('Motivo').setRequired(true))
+    .addIntegerOption(o => o.setName('nivel').setDescription('Nivel').setMinValue(1).setMaxValue(3).setRequired(true)),
 
   async execute(interaction) {
+    await interaction.deferReply();
 
     if (!interaction.client.tienePermiso(interaction.member, "ban", interaction.client)) {
-      return interaction.reply({ content: "❌ No tienes permisos.", ephemeral: true });
+      return interaction.editReply("❌ No tienes permisos.");
     }
 
-    const user = interaction.options.getMember('usuario');
+    const user = interaction.options.getUser('usuario');
+    const member = interaction.guild.members.cache.get(user.id);
+
     const nivel = interaction.options.getInteger('nivel');
 
-    const role = interaction.guild.roles.cache.get(banRoles[nivel]);
-    if (role) await user.roles.add(role);
+    try {
+      const role = interaction.guild.roles.cache.get(banRoles[nivel]);
+      if (role && member) await member.roles.add(role);
+    } catch {}
 
     const embed = new EmbedBuilder()
       .setColor("#8b0000")
       .setTitle("🔨 SISTEMA DE CASTIGO")
       .setDescription(`
-👤 Usuario: ${user}
+👤 Usuario: <@${user.id}>
 📌 Motivo: ${interaction.options.getString('motivo')}
 🚨 Tipo: ${nombres[nivel]}
 🔢 Nivel: ${nivel}/3
 👮 Staff: ${interaction.user}
-
-⚠️ Este castigo ha sido aplicado según normativa del servidor.
       `)
       .setTimestamp();
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   }
 };

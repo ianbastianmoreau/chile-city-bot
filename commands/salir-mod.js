@@ -6,7 +6,7 @@ module.exports = {
 
     const inicio = tiempos.get(message.author.id);
 
-    if (!inicio) return message.reply("❌ No estás en servicio.");
+    if (!inicio) return message.reply("❌ Saliste de servicio correctamente.");
 
     const minutos = Math.floor((Date.now() - inicio) / 60000);
 

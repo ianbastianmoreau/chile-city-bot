@@ -17,28 +17,32 @@ module.exports = {
     .addIntegerOption(o => o.setName('numero').setDescription('Nivel').setMinValue(1).setMaxValue(5).setRequired(true)),
 
   async execute(interaction) {
+    await interaction.deferReply();
 
     if (!interaction.client.tienePermiso(interaction.member, "advertencia", interaction.client)) {
-      return interaction.reply({ content: "❌ No tienes permisos.", ephemeral: true });
+      return interaction.editReply("❌ No tienes permisos.");
     }
 
-    const user = interaction.options.getMember('usuario');
+    const user = interaction.options.getUser('usuario');
+    const member = interaction.guild.members.cache.get(user.id);
     const num = interaction.options.getInteger('numero');
 
-    const role = interaction.guild.roles.cache.get(advertRoles[num]);
-    if (role) await user.roles.add(role);
+    try {
+      const role = interaction.guild.roles.cache.get(advertRoles[num]);
+      if (role && member) await member.roles.add(role);
+    } catch {}
 
     const embed = new EmbedBuilder()
       .setColor("#ffcc00")
       .setTitle("⚠️ ADVERTENCIA")
       .setDescription(`
-👤 Usuario: ${user}
+👤 Usuario: <@${user.id}>
 📌 Motivo: ${interaction.options.getString('motivo')}
 🔢 Nivel: ${num}/5
 👮 Staff: ${interaction.user}
       `)
       .setTimestamp();
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   }
 };
