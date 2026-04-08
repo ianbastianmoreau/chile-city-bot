@@ -29,7 +29,7 @@ module.exports = {
       descripcion = `
 :green_circle: ・Alerta VERDE: Ciudad calmada, Carabineros y PDI patrullando normal. Gente civilizada (aunque pueden existir delitos menores)
 
-Carabineros: Sauer  
+Carabineros: Glock 17  
 PDI: Glock 17  
 
 📌 Motivo: ${motivo}
@@ -42,8 +42,8 @@ PDI: Glock 17
       descripcion = `
 :yellow_circle: ・Alerta AMARILLA: Ciudad con actividad delictiva moderada, patrullajes reforzados y mayor precaución.
 
-Carabineros: Sauer y MP5 en maletero  
-PDI: Glock 17 y escopeta en maletero  
+Carabineros: Glock 17 y MP5 en maletero  
+PDI: Glock 17 y MP5 en maletero  
 
 📌 Motivo: ${motivo}
       `;
@@ -56,7 +56,7 @@ PDI: Glock 17 y escopeta en maletero
 :red_circle: ・Alerta ROJA: Situación crítica, despliegue de fuerzas especiales y alta actividad criminal.
 
 Carabineros (G.O.P.E): Armas largas y escopetas de goma  
-PDI: Armas largas y escopetas de goma  
+PDI (ERTA): Armas largas y escopetas de goma  
 
 📌 Motivo: ${motivo}
       `;
