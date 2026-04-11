@@ -121,7 +121,27 @@ client.once('clientReady', () => {
   console.log(`✅ Bot listo como ${client.user.tag}`);
 });
 
+const { getAIResponse } = require('./utils/ia');
 
+client.on('messageCreate', async message => {
+  if (message.author.bot) return;
+
+  // ======================
+  // 🧠 IA POR MENCIÓN
+  // ======================
+  if (message.mentions.has(client.user)) {
+
+    const contenido = message.content.replace(`<@${client.user.id}>`, '').trim();
+
+    if (!contenido) return message.reply("👀 ¿Qué necesitas?");
+
+    await message.channel.sendTyping();
+
+    const respuesta = await getAIResponse(message.author.id, contenido);
+
+    return message.reply(respuesta);
+  }
+  
 // =======================
 // 💬 PREFIX
 // =======================
