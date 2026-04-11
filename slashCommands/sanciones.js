@@ -55,3 +55,16 @@ module.exports = {
     await interaction.editReply({ embeds: [embed] });
   }
 };
+
+if (!client.db.sanciones[user.id]) {
+  client.db.sanciones[user.id] = [];
+}
+
+client.db.sanciones[user.id].push({
+  motivo: interaction.options.getString('motivo'),
+  nivel: nivel,
+  staff: interaction.user.id,
+  fecha: new Date().toISOString()
+});
+
+client.saveDB();

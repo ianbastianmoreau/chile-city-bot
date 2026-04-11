@@ -20,6 +20,10 @@ module.exports = {
       return message.reply("❌ Debes mencionar al encargado de moderación.");
     }
 
+    //⏰hora
+    const hora = args[1];
+if (!hora) return message.reply("❌ Debes indicar hora (ej: 20:00)");
+
     const embed = new EmbedBuilder()
       .setColor("#ffaa00")
       .setTitle("📊 ENCUESTA DE APERTURA")
@@ -31,6 +35,7 @@ Se está evaluando una posible apertura del servidor.
 
 🎯 Votos mínimos requeridos: **${minimo}**
 👮 Encargado de moderación: ${encargado}
+⏰ Apertura programada: ${hora}
 
 📌 Tu voto influye en futuras aperturas del servidor.
       `)
