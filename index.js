@@ -37,7 +37,8 @@ client.permisos = {
   "comunicado": "1491174604167708712",
   "sancion": "1487107921711206481",
   "sancionstaff": "1491174604167708712",
-  "alerta": "1436890737202696192"
+  "alerta": "1436890737202696192",
+ 
 };
 
 function tienePermiso(member, commandName, client) {
