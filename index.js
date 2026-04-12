@@ -16,6 +16,16 @@ const {
 require('dotenv').config();
 const fs = require('fs');
 
+const CANAL_LOGS = "1492680979154731049";
+
+client.log = async (guild, mensaje) => {
+  try {
+    const canal = guild.channels.cache.get(CANAL_LOGS);
+    if (!canal) return;
+    canal.send(`📁 LOG\n${mensaje}`);
+  } catch {}
+};
+
 // =======================
 // 🧠 DATABASE
 // =======================

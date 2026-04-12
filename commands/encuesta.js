@@ -21,8 +21,9 @@ module.exports = {
     }
 
     //⏰hora
-    const hora = args[1];
-if (!hora) return message.reply("❌ Debes indicar hora (ej: 20:00)");
+   
+    const hora = args[1]; 
+    if (!hora) return message.reply("❌ Debes indicar hora (ej: 20:00)");
 
     const embed = new EmbedBuilder()
       .setColor("#ffaa00")

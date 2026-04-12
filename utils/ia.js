@@ -1,50 +1,27 @@
-const fetch = require("node-fetch");
-
 const memory = new Map();
 
 async function getAIResponse(userId, message) {
 
-  if (!memory.has(userId)) {
-    memory.set(userId, []);
-  }
+  if (!memory.has(userId)) memory.set(userId, []);
 
   const historial = memory.get(userId);
 
-  historial.push({ role: "user", content: message });
+  historial.push(message);
 
-  // limitar memoria
-  if (historial.length > 6) historial.shift();
+  if (historial.length > 15) historial.shift();
 
-  try {
-    const res = await fetch("https://api.ollama.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "llama3",
-        messages: [
-          {
-            role: "system",
-            content: "Eres un asistente realista, natural, amigable y chileno. Hablas como persona real, no como robot."
-          },
-          ...historial
-        ]
-      })
-    });
+  // RESPUESTA MÁS NATURAL
+  let respuesta;
 
-    const data = await res.json();
-
-    const respuesta = data.choices?.[0]?.message?.content || "No pude responder.";
-
-    historial.push({ role: "assistant", content: respuesta });
-
-    return respuesta;
-
-  } catch (err) {
-    console.error(err);
-    return "❌ Error con IA.";
+  if (message.includes("hola")) {
+    respuesta = "👋 Hola, ¿en qué puedo ayudarte hoy?";
+  } else if (message.includes("abrir")) {
+    respuesta = "🚀 La apertura depende de votos o staff.";
+  } else {
+    respuesta = "💬 Te leo… dime más detalles.";
   }
+
+  return respuesta;
 }
 
 module.exports = { getAIResponse };
