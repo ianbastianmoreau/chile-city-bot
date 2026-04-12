@@ -1,66 +1,125 @@
 const memory = {};
+const cooldown = {};
 
-const respuestas = {
+// 🎭 PERSONALIDADES
+const personalidades = {
+  normal: {
+    tono: "amigable",
+    emojis: true
+  },
+  serio: {
+    tono: "formal",
+    emojis: false
+  },
+  troll: {
+    tono: "sarcastico",
+    emojis: true
+  }
+};
+
+// 🧠 RESPUESTAS BASE
+const base = {
   saludo: [
-    "👋 Hola, ¿en qué te ayudo?",
-    "👋 ¡Buenas! ¿Qué necesitas?",
-    "👋 Hola, dime en qué puedo ayudarte"
+    "Hola, ¿en qué te ayudo?",
+    "Buenas, dime qué necesitas",
+    "Hey, aquí estoy"
   ],
-  pregunta: [
-    "🤔 Interesante... cuéntame más.",
-    "👀 Explícate un poco más",
-    "🧠 Dame más detalles para ayudarte mejor"
+  duda: [
+    "Interesante... explícate más",
+    "Necesito más detalles",
+    "Cuéntame mejor eso"
+  ],
+  enojo: [
+    "Tranqui 😅, dime qué pasó",
+    "Calma, lo resolvemos",
+    "No te enojes, explícame bien"
   ],
   random: [
-    "😅 No entendí mucho eso, ¿puedes explicar mejor?",
-    "🤖 Hmm... intenta decirlo de otra forma",
-    "🧠 Estoy aprendiendo, dame más contexto"
+    "No entendí bien eso",
+    "Explícalo de otra forma",
+    "Dame más contexto"
   ]
 };
 
-// 🔁 evitar repetir
-function getRandom(arr, last) {
-  let filtered = arr.filter(r => r !== last);
-  if (filtered.length === 0) filtered = arr;
-  return filtered[Math.floor(Math.random() * filtered.length)];
+// 🔍 DETECTAR INTENCIÓN
+function detectarIntento(msg) {
+  if (msg.includes("hola") || msg.includes("buenas")) return "saludo";
+  if (msg.includes("?") || msg.includes("que") || msg.includes("como")) return "duda";
+  if (msg.includes("weon") || msg.includes("ctm") || msg.includes("idiota")) return "enojo";
+  return "random";
 }
 
+// 🎲 RESPUESTA INTELIGENTE
+function generarRespuesta(tipo, userMem) {
+  let lista = base[tipo] || base.random;
+
+  let filtradas = lista.filter(r => r !== userMem.lastResponse);
+  if (filtradas.length === 0) filtradas = lista;
+
+  return filtradas[Math.floor(Math.random() * filtradas.length)];
+}
+
+// 🧠 FUNCIÓN PRINCIPAL
 async function getAIResponse(userId, msg) {
   msg = msg.toLowerCase();
 
+  // ⏱️ COOLDOWN
+  if (cooldown[userId]) return null;
+  cooldown[userId] = true;
+  setTimeout(() => delete cooldown[userId], 2500);
+
+  // 📦 CREAR MEMORIA
   if (!memory[userId]) {
     memory[userId] = {
+      lastMessage: null,
       lastResponse: null,
-      lastMessage: null
+      personalidad: "normal",
+      historial: []
     };
   }
 
   const userMem = memory[userId];
 
-  // ❌ evitar spam mismo mensaje
+  // ❌ evitar repetir mensaje
   if (userMem.lastMessage === msg) {
     return "🤨 Ya dijiste eso...";
   }
 
   userMem.lastMessage = msg;
 
-  let respuesta;
+  // 📚 guardar historial (máx 5)
+  userMem.historial.push(msg);
+  if (userMem.historial.length > 5) userMem.historial.shift();
 
-  // 🧠 lógica básica
-  if (msg.includes("hola") || msg.includes("buenas")) {
-    respuesta = getRandom(respuestas.saludo, userMem.lastResponse);
-  }
-  else if (msg.includes("?") || msg.includes("que") || msg.includes("por que")) {
-    respuesta = getRandom(respuestas.pregunta, userMem.lastResponse);
-  }
-  else {
-    respuesta = getRandom(respuestas.random, userMem.lastResponse);
+  // 🧠 detectar intención
+  const tipo = detectarIntento(msg);
+
+  let respuesta = generarRespuesta(tipo, userMem);
+
+  // 🎭 PERSONALIDAD
+  const personalidad = personalidades[userMem.personalidad];
+
+  if (personalidad.tono === "sarcastico") {
+    respuesta = "😏 " + respuesta;
   }
 
-  // guardar última respuesta
+  if (personalidad.tono === "formal") {
+    respuesta = respuesta.replace("Hola", "Buenas tardes");
+  }
+
+  if (personalidad.emojis === false) {
+    respuesta = respuesta.replace(/[^\w\s]/gi, "");
+  }
+
   userMem.lastResponse = respuesta;
 
   return respuesta;
 }
 
-module.exports = { getAIResponse };
+// 🔧 CAMBIAR PERSONALIDAD
+function setPersonality(userId, tipo) {
+  if (!memory[userId]) return;
+  memory[userId].personalidad = tipo;
+}
+
+module.exports = { getAIResponse, setPersonality };

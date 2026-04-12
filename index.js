@@ -167,8 +167,11 @@ async function getAIResponse(userId, msg) {
 // 💬 MENSAJES
 // =======================
 client.on('messageCreate', async message => {
-  if (message.author.bot) return;
+  const respuesta = await getAIResponse(message.author.id, texto);
 
+if (!respuesta) return; // 👈 IMPORTANTE (anti spam)
+
+return message.reply(respuesta);
   // ======================
   // 🧠 IA POR MENCIÓN
   // ======================
