@@ -17,9 +17,8 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 
-
 // =======================
-// 🧠 BASE DE DATOS (JSON)
+// 🧠 BASE DE DATOS
 // =======================
 const dbPath = './data.json';
 
@@ -28,7 +27,6 @@ if (fs.existsSync(dbPath)) {
   db = JSON.parse(fs.readFileSync(dbPath));
 }
 
-// estructura base (anti errores)
 db.sanciones = db.sanciones || {};
 db.advertencias = db.advertencias || {};
 db.staff = db.staff || {};
@@ -38,7 +36,6 @@ db.verificaciones = db.verificaciones || {};
 function saveDB() {
   fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
 }
-
 
 // =======================
 // 🤖 CLIENTE
@@ -51,10 +48,8 @@ const client = new Client({
   ]
 });
 
-// 👉 ahora sí (ANTES estaba mal)
 client.db = db;
 client.saveDB = saveDB;
-
 
 // =======================
 // 📌 CONFIG
@@ -62,24 +57,23 @@ client.saveDB = saveDB;
 const CANAL_VERIFICACION = "ID_CANAL";
 const ROL_VERIFICADO = "ID_ROL";
 
-
 // =======================
 // 📌 PERMISOS
 // =======================
 client.permisos = {
-  "aperturaon": "1487107921711206481",
-  "aperturaoff": "1487107921711206481",
-  "encuesta": "1487107921711206481",
-  "activity": "1487107921711206481",
-  "agradecer": "1487107921711206481",
+  aperturaon: "1487107921711206481",
+  aperturaoff: "1487107921711206481",
+  encuesta: "1487107921711206481",
+  activity: "1487107921711206481",
+  agradecer: "1487107921711206481",
   "entrar-mod": "1487107921711206481",
   "salir-mod": "1487107921711206481",
-  "advertencia": "1487107921711206481",
-  "ban": "1491174604167708712",
-  "comunicado": "1491174604167708712",
-  "sancion": "1487107921711206481",
-  "sancionstaff": "1491174604167708712",
-  "alerta": "1436890737202696192"
+  advertencia: "1487107921711206481",
+  ban: "1491174604167708712",
+  comunicado: "1491174604167708712",
+  sancion: "1487107921711206481",
+  sancionstaff: "1491174604167708712",
+  alerta: "1436890737202696192"
 };
 
 function tienePermiso(member, commandName) {
@@ -90,29 +84,23 @@ function tienePermiso(member, commandName) {
 
 client.tienePermiso = tienePermiso;
 
-
 // =======================
 // 📂 CARGAR COMANDOS
 // =======================
 client.prefixCommands = new Collection();
 client.slashCommands = new Collection();
 
-// PREFIX
-const prefixPath = path.join(__dirname, 'commands');
-fs.readdirSync(prefixPath).forEach(file => {
+fs.readdirSync('./commands').forEach(file => {
   if (!file.endsWith('.js')) return;
   const cmd = require(`./commands/${file}`);
   client.prefixCommands.set(cmd.name, cmd);
 });
 
-// SLASH
-const slashPath = path.join(__dirname, 'slashCommands');
-fs.readdirSync(slashPath).forEach(file => {
+fs.readdirSync('./slashCommands').forEach(file => {
   if (!file.endsWith('.js')) return;
   const cmd = require(`./slashCommands/${file}`);
   client.slashCommands.set(cmd.data.name, cmd);
 });
-
 
 // =======================
 // 🚀 READY
@@ -121,16 +109,19 @@ client.once('clientReady', () => {
   console.log(`✅ Bot listo como ${client.user.tag}`);
 });
 
+// =======================
+// 🧠 IA
+// =======================
 const { getAIResponse } = require('./utils/ia');
 
-client.on('messageCreate', async message => {
+// =======================
+// 💬 MENSAJES (IA + PREFIX)
+// =======================
+client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
-  // ======================
-  // 🧠 IA POR MENCIÓN
-  // ======================
+  // ===== IA =====
   if (message.mentions.has(client.user)) {
-
     const contenido = message.content.replace(`<@${client.user.id}>`, '').trim();
 
     if (!contenido) return message.reply("👀 ¿Qué necesitas?");
@@ -138,16 +129,10 @@ client.on('messageCreate', async message => {
     await message.channel.sendTyping();
 
     const respuesta = await getAIResponse(message.author.id, contenido);
-
     return message.reply(respuesta);
   }
-  
-// =======================
-// 💬 PREFIX
-// =======================
-client.on('messageCreate', async message => {
-  if (message.author.bot) return;
 
+  // ===== PREFIX =====
   const prefix = "ch!";
   if (!message.content.startsWith(prefix)) return;
 
@@ -169,15 +154,12 @@ client.on('messageCreate', async message => {
   }
 });
 
-
 // =======================
-// ⚡ INTERACCIONES (TODO)
+// ⚡ INTERACCIONES
 // =======================
-client.on('interactionCreate', async interaction => {
+client.on('interactionCreate', async (interaction) => {
 
-  // ===================
-  // SLASH COMMANDS
-  // ===================
+  // ===== SLASH =====
   if (interaction.isChatInputCommand()) {
     const command = client.slashCommands.get(interaction.commandName);
     if (!command) return;
@@ -194,10 +176,7 @@ client.on('interactionCreate', async interaction => {
     }
   }
 
-
-  // ===================
-  // BOTÓN VERIFICAR
-  // ===================
+  // ===== BOTONES =====
   if (interaction.isButton()) {
 
     if (interaction.customId === "verificar_btn") {
@@ -227,11 +206,6 @@ client.on('interactionCreate', async interaction => {
       modal.addComponents(rows);
       return interaction.showModal(modal);
     }
-
-
-    // ===================
-    // BOTONES STAFF
-    // ===================
 
     if (interaction.customId.startsWith("aceptar_")) {
       const userId = interaction.customId.split("_")[1];
@@ -271,10 +245,7 @@ client.on('interactionCreate', async interaction => {
     }
   }
 
-
-  // ===================
-  // MODAL
-  // ===================
+  // ===== MODAL =====
   if (interaction.isModalSubmit()) {
 
     if (interaction.customId === "modal_verificacion") {
@@ -321,23 +292,20 @@ client.on('interactionCreate', async interaction => {
 
 });
 
-
 // =======================
-// 🌐 WEB (RENDER FIX)
+// 🌐 RENDER FIX
 // =======================
 require("http").createServer((req, res) => {
   res.end("Bot activo");
 }).listen(process.env.PORT || 3000);
-
 
 // =======================
 // 🔐 LOGIN
 // =======================
 client.login(process.env.TOKEN);
 
-
 // =======================
 // 💥 ANTI CRASH
 // =======================
-process.on('uncaughtException', console.error);
 process.on('unhandledRejection', console.error);
+process.on('uncaughtException', console.error);
