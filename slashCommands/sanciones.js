@@ -29,13 +29,18 @@ module.exports = {
     }
 
     const user = interaction.options.getUser('usuario');
-    const member = await interaction.guild.members.fetch(user.id);
-    const nivel = interaction.options.getInteger('nivel');
     const motivo = interaction.options.getString('motivo');
+    const nivel = interaction.options.getInteger('nivel');
+
+    let member;
+    try {
+      member = await interaction.guild.members.fetch(user.id);
+    } catch {
+      return interaction.editReply("❌ Usuario no está en el servidor.");
+    }
 
     const db = interaction.client.db;
 
-    // ✅ GUARDAR EN DB
     if (!db.sanciones[user.id]) {
       db.sanciones[user.id] = [];
     }
@@ -49,23 +54,23 @@ module.exports = {
 
     interaction.client.saveDB();
 
-    // ✅ DAR ROL
+    // DAR ROL
     try {
       const role = interaction.guild.roles.cache.get(sancionRoles[nivel]);
-      if (role && member) await member.roles.add(role);
-    } catch (err) {
-      console.error("Error rol:", err);
-    }
+      if (role) await member.roles.add(role);
+    } catch {}
 
-    // ✅ AUTO BAN SI LLEGA A 3
+    // AUTO BAN
     if (db.sanciones[user.id].length >= 3) {
       const rolBan = interaction.guild.roles.cache.get("ID_BAN");
-      if (rolBan && member) {
-        await member.roles.add(rolBan);
-      }
+      if (rolBan) await member.roles.add(rolBan);
     }
 
-    // ✅ EMBED
+    // LOG
+    interaction.client.log(interaction.guild,
+      `Sanción a ${user.tag} | Nivel ${nivel} | Staff: ${interaction.user.tag}`
+    );
+
     const embed = new EmbedBuilder()
       .setColor("#ff0000")
       .setTitle("⚖️ SANCIÓN APLICADA")
