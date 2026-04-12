@@ -15,7 +15,6 @@ const {
 
 require('dotenv').config();
 const fs = require('fs');
-const path = require('path');
 
 // =======================
 // 🧠 DATABASE
@@ -24,9 +23,14 @@ const dbPath = './data.json';
 
 let db = {};
 if (fs.existsSync(dbPath)) {
-  db = JSON.parse(fs.readFileSync(dbPath));
+  try {
+    db = JSON.parse(fs.readFileSync(dbPath));
+  } catch {
+    db = {};
+  }
 }
 
+// estructura base
 db.sanciones ||= {};
 db.advertencias ||= {};
 db.staff ||= {};
@@ -34,7 +38,11 @@ db.activity ||= {};
 db.verificaciones ||= {};
 
 function saveDB() {
-  fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
+  try {
+    fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
+  } catch (err) {
+    console.error("❌ Error guardando DB:", err);
+  }
 }
 
 // =======================
@@ -115,21 +123,27 @@ client.once('clientReady', () => {
 const { getAIResponse } = require('./utils/ia');
 
 // =======================
-// 💬 MENSAJES (IA + PREFIX)
+// 💬 MENSAJES
 // =======================
 client.on('messageCreate', async message => {
   if (message.author.bot) return;
 
   // IA por mención
   if (message.mentions.has(client.user)) {
-    const texto = message.content.replace(`<@${client.user.id}>`, '').trim();
+    try {
+      const texto = message.content.replace(`<@${client.user.id}>`, '').trim();
 
-    if (!texto) return message.reply("👀 ¿Qué necesitas?");
+      if (!texto) return message.reply("👀 ¿Qué necesitas?");
 
-    await message.channel.sendTyping();
-    const respuesta = await getAIResponse(message.author.id, texto);
+      await message.channel.sendTyping();
 
-    return message.reply(respuesta);
+      const respuesta = await getAIResponse(message.author.id, texto);
+
+      return message.reply(respuesta || "🤖 No pude responder eso.");
+    } catch (err) {
+      console.error(err);
+      return message.reply("❌ Error en IA.");
+    }
   }
 
   // PREFIX
@@ -180,6 +194,7 @@ client.on('interactionCreate', async interaction => {
   if (interaction.isButton()) {
 
     if (interaction.customId === "verificar_btn") {
+
       const modal = new ModalBuilder()
         .setCustomId("modal_verificacion")
         .setTitle("Verificación");
@@ -198,6 +213,7 @@ client.on('interactionCreate', async interaction => {
             .setCustomId(f[0])
             .setLabel(f[1])
             .setStyle(TextInputStyle.Short)
+            .setRequired(true)
         )
       );
 
@@ -207,18 +223,23 @@ client.on('interactionCreate', async interaction => {
 
     if (interaction.customId.startsWith("aceptar_")) {
       const id = interaction.customId.split("_")[1];
-      const member = await interaction.guild.members.fetch(id);
 
-      if (member) await member.roles.add(ROL_VERIFICADO);
+      try {
+        const member = await interaction.guild.members.fetch(id);
 
-      db.verificaciones[id] = "aceptado";
-      saveDB();
+        if (member) await member.roles.add(ROL_VERIFICADO);
 
-      return interaction.reply("✅ Aceptado");
+        db.verificaciones[id] = "aceptado";
+        saveDB();
+
+        return interaction.reply("✅ Usuario aceptado");
+      } catch {
+        return interaction.reply("❌ Error al aceptar");
+      }
     }
 
     if (interaction.customId.startsWith("rechazar_")) {
-      return interaction.reply("❌ Rechazado");
+      return interaction.reply("❌ Usuario rechazado");
     }
   }
 
@@ -241,13 +262,13 @@ client.on('interactionCreate', async interaction => {
       const embed = new EmbedBuilder()
         .setColor("#00bfff")
         .setTitle("📋 VERIFICACIÓN")
-        .setDescription(`👤 ${interaction.user}`)
         .addFields(
-          { name: "Roblox", value: data.roblox },
-          { name: "Discord", value: data.discord },
-          { name: "Ingreso", value: data.ingreso },
-          { name: "Experiencia", value: data.exp },
-          { name: "MG", value: data.mg }
+          { name: "👤 Usuario", value: `${interaction.user}` },
+          { name: "🎮 Roblox", value: data.roblox },
+          { name: "💬 Discord", value: data.discord },
+          { name: "📥 Ingreso", value: data.ingreso },
+          { name: "🎭 Experiencia", value: data.exp },
+          { name: "📘 MG", value: data.mg }
         );
 
       const row = new ActionRowBuilder().addComponents(
@@ -256,16 +277,19 @@ client.on('interactionCreate', async interaction => {
       );
 
       const canal = interaction.guild.channels.cache.get(CANAL_VERIFICACION);
-      if (canal) await canal.send({ embeds: [embed], components: [row] });
 
-      return interaction.reply({ content: "✅ Enviado", ephemeral: true });
+      if (canal) {
+        await canal.send({ embeds: [embed], components: [row] });
+      }
+
+      return interaction.reply({ content: "✅ Enviado correctamente", ephemeral: true });
     }
   }
 
 });
 
 // =======================
-// 🌐 WEB (RENDER FIX)
+// 🌐 RENDER FIX
 // =======================
 require("http").createServer((req, res) => {
   res.end("Bot activo");
