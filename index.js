@@ -1,23 +1,15 @@
 const {
   Client,
   GatewayIntentBits,
-  Collection,
-  EmbedBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  ModalBuilder,
-  TextInputBuilder,
-  TextInputStyle,
-  ChannelType,
-  PermissionFlagsBits
+  Collection
 } = require('discord.js');
 
 require('dotenv').config();
 const fs = require('fs');
+const mongoose = require("mongoose");
 
 // =======================
-// 🤖 CLIENT (PRIMERO SIEMPRE)
+// 🤖 CLIENT
 // =======================
 const client = new Client({
   intents: [
@@ -28,46 +20,19 @@ const client = new Client({
 });
 
 // =======================
+// 🔥 MONGODB
+// =======================
+mongoose.connect(process.env.MONGO_URI)
+.then(() => console.log("🔥 Mongo conectado"))
+.catch(err => console.error("❌ Mongo error:", err));
+
+// =======================
 // 📁 CONFIG
 // =======================
 const CANAL_LOGS = "1492680979154731049";
-const CANAL_VERIFICACION = "ID_CANAL";
-const ROL_VERIFICADO = "ID_ROL";
 
 // =======================
-// 🧠 DATABASE
-// =======================
-const dbPath = './data.json';
-
-let db = {};
-if (fs.existsSync(dbPath)) {
-  try {
-    db = JSON.parse(fs.readFileSync(dbPath));
-  } catch {
-    db = {};
-  }
-}
-
-// estructura base (IMPORTANTE)
-db.sanciones ||= {};
-db.advertencias ||= {};
-db.staff ||= {};
-db.activity ||= {};
-db.verificaciones ||= {};
-
-function saveDB() {
-  try {
-    fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
-  } catch (err) {
-    console.error("❌ Error guardando DB:", err);
-  }
-}
-
-client.db = db;
-client.saveDB = saveDB;
-
-// =======================
-// 📁 LOGS (ARREGLADO)
+// 📁 LOGS
 // =======================
 client.log = async (guild, mensaje) => {
   try {
@@ -80,22 +45,14 @@ client.log = async (guild, mensaje) => {
 };
 
 // =======================
-// 🔐 PERMISOS (LOS TUYOS)
+// 🔐 PERMISOS
 // =======================
 client.permisos = {
-  aperturaon: "1487107921711206481",
-  aperturaoff: "1487107921711206481",
-  encuesta: "1487107921711206481",
-  activity: "1487107921711206481",
-  agradecer: "1487107921711206481",
-  "entrar-mod": "1487107921711206481",
-  "salir-mod": "1487107921711206481",
   advertencia: "1487107921711206481",
   ban: "1491174604167708712",
   comunicado: "1491174604167708712",
   sancion: "1487107921711206481",
-  sancionstaff: "1491174604167708712",
-  alerta: "1436890737202696192"
+  sancionstaff: "1491174604167708712"
 };
 
 client.tienePermiso = (member, cmd) => {
@@ -105,27 +62,38 @@ client.tienePermiso = (member, cmd) => {
 };
 
 // =======================
-// 📂 CARGAR COMANDOS
+// 📂 COMANDOS
 // =======================
 client.prefixCommands = new Collection();
 client.slashCommands = new Collection();
 
 // PREFIX
-if (fs.existsSync('./commands')) {
-  fs.readdirSync('./commands').forEach(file => {
-    if (!file.endsWith('.js')) return;
-    const cmd = require(`./commands/${file}`);
-    client.prefixCommands.set(cmd.name, cmd);
-  });
-}
+const loadCommands = (dir) => {
+  const files = fs.readdirSync(dir);
+
+  for (const file of files) {
+    const fullPath = path.join(dir, file);
+
+    if (fs.lstatSync(fullPath).isDirectory()) {
+      loadCommands(fullPath); // 🔁 entra a subcarpetas
+    } else if (file.endsWith(".js")) {
+      const command = require(fullPath);
+      client.prefixCommands.set(command.name, command);
+    }
+  }
+};
+
+loadCommands("./commands");
 
 // SLASH
 if (fs.existsSync('./slashCommands')) {
-  fs.readdirSync('./slashCommands').forEach(file => {
-    if (!file.endsWith('.js')) return;
+  const slashFiles = fs.readdirSync('./slashCommands').filter(f => f.endsWith(".js"));
+
+  for (const file of slashFiles) {
     const cmd = require(`./slashCommands/${file}`);
+    if (!cmd.data) continue;
     client.slashCommands.set(cmd.data.name, cmd);
-  });
+  }
 }
 
 // =======================
@@ -136,7 +104,7 @@ client.once('clientReady', () => {
 });
 
 // =======================
-// 🧠 IA MEJORADA (NO REPITE)
+// 🧠 IA SIMPLE
 // =======================
 const memory = {};
 
@@ -148,35 +116,53 @@ async function getAIResponse(userId, msg) {
 
   const lower = msg.toLowerCase();
 
-  if (lower.includes("hola")) {
-    return "👋 Hola, ¿en qué te ayudo?";
-  }
+  if (lower.includes("hola")) return "👋 Hola, ¿en qué te ayudo?";
+  if (lower.includes("ip")) return "🌐 IP: ChileCity";
+  if (lower.length < 3) return "🤨 dime algo más claro";
 
-  if (lower.includes("que pasa")) {
-    return "Todo tranquilo 😎 ¿qué necesitas?";
-  }
-
-  if (lower.length < 3) {
-    return "🤨 dime algo más claro bro";
-  }
-
-  return "🤖 Interesante... cuéntame más.";
+  return "🤖 No entendí bien, intenta explicar mejor.";
 }
 
 // =======================
 // 💬 MENSAJES
 // =======================
 client.on('messageCreate', async message => {
-  const respuesta = await getAIResponse(message.author.id, texto);
 
-if (!respuesta) return; // 👈 IMPORTANTE (anti spam)
+  if (message.author.bot) return;
 
-return message.reply(respuesta);
+  const prefix = "ch!";
+
+  // ======================
+  // 💬 PREFIX COMMANDS
+  // ======================
+  if (message.content.startsWith(prefix)) {
+
+    const args = message.content.slice(prefix.length).trim().split(/ +/);
+    const cmdName = args.shift().toLowerCase();
+
+    const command = client.prefixCommands.get(cmdName);
+    if (!command) return;
+
+    if (!client.tienePermiso(message.member, cmdName)) {
+      return message.reply("❌ No tienes permisos.");
+    }
+
+    try {
+      await command.execute(message, args, client);
+    } catch (err) {
+      console.error(err);
+      message.reply("❌ Error en comando.");
+    }
+
+    return; // 🔥 IMPORTANTE: corta aquí
+  }
+
   // ======================
   // 🧠 IA POR MENCIÓN
   // ======================
   if (message.mentions.has(client.user)) {
     try {
+
       const texto = message.content
         .replace(`<@${client.user.id}>`, '')
         .replace(`<@!${client.user.id}>`, '')
@@ -188,35 +174,16 @@ return message.reply(respuesta);
 
       const respuesta = await getAIResponse(message.author.id, texto);
 
+      if (!respuesta) return;
+
       return message.reply(respuesta);
+
     } catch (err) {
       console.error(err);
       return message.reply("❌ Error en IA.");
     }
   }
 
-  // ======================
-  // 💬 PREFIX
-  // ======================
-  const prefix = "ch!";
-  if (!message.content.startsWith(prefix)) return;
-
-  const args = message.content.slice(prefix.length).trim().split(/ +/);
-  const cmdName = args.shift().toLowerCase();
-
-  const command = client.prefixCommands.get(cmdName);
-  if (!command) return;
-
-  if (!client.tienePermiso(message.member, cmdName)) {
-    return message.reply("❌ No tienes permisos.");
-  }
-
-  try {
-    await command.execute(message, args, client);
-  } catch (err) {
-    console.error(err);
-    message.reply("❌ Error en comando.");
-  }
 });
 
 // =======================
@@ -224,26 +191,26 @@ return message.reply(respuesta);
 // =======================
 client.on('interactionCreate', async interaction => {
 
-  if (interaction.isChatInputCommand()) {
-    const cmd = client.slashCommands.get(interaction.commandName);
-    if (!cmd) return;
+  if (!interaction.isChatInputCommand()) return;
 
-    if (!client.tienePermiso(interaction.member, interaction.commandName)) {
-      return interaction.reply({ content: "❌ No permisos", ephemeral: true });
-    }
+  const cmd = client.slashCommands.get(interaction.commandName);
+  if (!cmd) return;
 
-    try {
-      await cmd.execute(interaction);
-    } catch (err) {
-      console.error(err);
-      interaction.reply({ content: "❌ Error", ephemeral: true });
-    }
+  if (!client.tienePermiso(interaction.member, interaction.commandName)) {
+    return interaction.reply({ content: "❌ No permisos", ephemeral: true });
+  }
+
+  try {
+    await cmd.execute(interaction);
+  } catch (err) {
+    console.error(err);
+    interaction.reply({ content: "❌ Error", ephemeral: true });
   }
 
 });
 
 // =======================
-// 🌐 RENDER FIX
+// 🌐 RENDER KEEP ALIVE
 // =======================
 require("http").createServer((req, res) => {
   res.end("Bot activo");
