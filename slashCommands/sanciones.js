@@ -9,14 +9,14 @@ const sancionRoles = {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('sancion')
-    .setDescription('Aplicar sanción a usuario')
+    .setDescription('Aplicar sanción')
     .addUserOption(o =>
       o.setName('usuario').setDescription('Usuario').setRequired(true))
     .addStringOption(o =>
       o.setName('motivo').setDescription('Motivo').setRequired(true))
     .addIntegerOption(o =>
-      o.setName('numero')
-        .setDescription('Nivel de sanción')
+      o.setName('nivel')
+        .setDescription('Nivel')
         .setMinValue(1)
         .setMaxValue(3)
         .setRequired(true)),
@@ -24,47 +24,59 @@ module.exports = {
   async execute(interaction) {
     await interaction.deferReply();
 
-    if (!interaction.client.tienePermiso(interaction.member, "sancion", interaction.client)) {
+    if (!interaction.client.tienePermiso(interaction.member, "sancion")) {
       return interaction.editReply("❌ No tienes permisos.");
     }
 
     const user = interaction.options.getUser('usuario');
-    const member = interaction.guild.members.cache.get(user.id);
-    const nivel = interaction.options.getInteger('numero');
+    const member = await interaction.guild.members.fetch(user.id);
+    const nivel = interaction.options.getInteger('nivel');
+    const motivo = interaction.options.getString('motivo');
 
+    const db = interaction.client.db;
+
+    // ✅ GUARDAR EN DB
+    if (!db.sanciones[user.id]) {
+      db.sanciones[user.id] = [];
+    }
+
+    db.sanciones[user.id].push({
+      motivo,
+      nivel,
+      staff: interaction.user.id,
+      fecha: new Date().toISOString()
+    });
+
+    interaction.client.saveDB();
+
+    // ✅ DAR ROL
     try {
       const role = interaction.guild.roles.cache.get(sancionRoles[nivel]);
       if (role && member) await member.roles.add(role);
     } catch (err) {
-      console.error(err);
+      console.error("Error rol:", err);
     }
 
+    // ✅ AUTO BAN SI LLEGA A 3
+    if (db.sanciones[user.id].length >= 3) {
+      const rolBan = interaction.guild.roles.cache.get("ID_BAN");
+      if (rolBan && member) {
+        await member.roles.add(rolBan);
+      }
+    }
+
+    // ✅ EMBED
     const embed = new EmbedBuilder()
       .setColor("#ff0000")
       .setTitle("⚖️ SANCIÓN APLICADA")
       .setDescription(`
 👤 Usuario: <@${user.id}>
-📌 Motivo: ${interaction.options.getString('motivo')}
+📌 Motivo: ${motivo}
 🔢 Nivel: ${nivel}/3
 👮 Staff: ${interaction.user}
-
-⚠️ Acumular sanciones puede llevar a castigos mayores.
       `)
       .setTimestamp();
 
     await interaction.editReply({ embeds: [embed] });
   }
 };
-
-if (!client.db.sanciones[user.id]) {
-  client.db.sanciones[user.id] = [];
-}
-
-client.db.sanciones[user.id].push({
-  motivo: interaction.options.getString('motivo'),
-  nivel: nivel,
-  staff: interaction.user.id,
-  fecha: new Date().toISOString()
-});
-
-client.saveDB();
