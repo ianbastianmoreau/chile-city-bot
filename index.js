@@ -8,14 +8,16 @@ const {
   ButtonStyle,
   ModalBuilder,
   TextInputBuilder,
-  TextInputStyle
+  TextInputStyle,
+  ChannelType,
+  PermissionFlagsBits
 } = require('discord.js');
 
 require('dotenv').config();
 const fs = require('fs');
 
 // =======================
-// 🤖 CLIENT (PRIMERO)
+// 🤖 CLIENT (PRIMERO SIEMPRE)
 // =======================
 const client = new Client({
   intents: [
@@ -46,33 +48,48 @@ if (fs.existsSync(dbPath)) {
   }
 }
 
+// estructura base (IMPORTANTE)
 db.sanciones ||= {};
 db.advertencias ||= {};
 db.staff ||= {};
+db.activity ||= {};
 db.verificaciones ||= {};
 
 function saveDB() {
-  fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
+  try {
+    fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
+  } catch (err) {
+    console.error("❌ Error guardando DB:", err);
+  }
 }
 
 client.db = db;
 client.saveDB = saveDB;
 
 // =======================
-// 📜 LOGS
+// 📁 LOGS (ARREGLADO)
 // =======================
 client.log = async (guild, mensaje) => {
   try {
     const canal = guild.channels.cache.get(CANAL_LOGS);
     if (!canal) return;
     canal.send(`📁 LOG\n${mensaje}`);
-  } catch {}
+  } catch (err) {
+    console.error("Error logs:", err);
+  }
 };
 
 // =======================
-// 🔐 PERMISOS
+// 🔐 PERMISOS (LOS TUYOS)
 // =======================
 client.permisos = {
+  aperturaon: "1487107921711206481",
+  aperturaoff: "1487107921711206481",
+  encuesta: "1487107921711206481",
+  activity: "1487107921711206481",
+  agradecer: "1487107921711206481",
+  "entrar-mod": "1487107921711206481",
+  "salir-mod": "1487107921711206481",
   advertencia: "1487107921711206481",
   ban: "1491174604167708712",
   comunicado: "1491174604167708712",
@@ -88,22 +105,28 @@ client.tienePermiso = (member, cmd) => {
 };
 
 // =======================
-// 📂 COMANDOS
+// 📂 CARGAR COMANDOS
 // =======================
 client.prefixCommands = new Collection();
 client.slashCommands = new Collection();
 
-fs.readdirSync('./commands').forEach(file => {
-  if (!file.endsWith('.js')) return;
-  const cmd = require(`./commands/${file}`);
-  client.prefixCommands.set(cmd.name, cmd);
-});
+// PREFIX
+if (fs.existsSync('./commands')) {
+  fs.readdirSync('./commands').forEach(file => {
+    if (!file.endsWith('.js')) return;
+    const cmd = require(`./commands/${file}`);
+    client.prefixCommands.set(cmd.name, cmd);
+  });
+}
 
-fs.readdirSync('./slashCommands').forEach(file => {
-  if (!file.endsWith('.js')) return;
-  const cmd = require(`./slashCommands/${file}`);
-  client.slashCommands.set(cmd.data.name, cmd);
-});
+// SLASH
+if (fs.existsSync('./slashCommands')) {
+  fs.readdirSync('./slashCommands').forEach(file => {
+    if (!file.endsWith('.js')) return;
+    const cmd = require(`./slashCommands/${file}`);
+    client.slashCommands.set(cmd.data.name, cmd);
+  });
+}
 
 // =======================
 // 🚀 READY
@@ -113,18 +136,65 @@ client.once('clientReady', () => {
 });
 
 // =======================
+// 🧠 IA MEJORADA (NO REPITE)
+// =======================
+const memory = {};
+
+async function getAIResponse(userId, msg) {
+  if (!memory[userId]) memory[userId] = [];
+
+  memory[userId].push(msg);
+  if (memory[userId].length > 5) memory[userId].shift();
+
+  const lower = msg.toLowerCase();
+
+  if (lower.includes("hola")) {
+    return "👋 Hola, ¿en qué te ayudo?";
+  }
+
+  if (lower.includes("que pasa")) {
+    return "Todo tranquilo 😎 ¿qué necesitas?";
+  }
+
+  if (lower.length < 3) {
+    return "🤨 dime algo más claro bro";
+  }
+
+  return "🤖 Interesante... cuéntame más.";
+}
+
+// =======================
 // 💬 MENSAJES
 // =======================
 client.on('messageCreate', async message => {
   if (message.author.bot) return;
 
-  // IA SIMPLE
+  // ======================
+  // 🧠 IA POR MENCIÓN
+  // ======================
   if (message.mentions.has(client.user)) {
-    const texto = message.content.replace(`<@${client.user.id}>`, '').trim();
-    if (!texto) return message.reply("👀 ¿Qué necesitas?");
-    return message.reply(`🤖 ${texto}`);
+    try {
+      const texto = message.content
+        .replace(`<@${client.user.id}>`, '')
+        .replace(`<@!${client.user.id}>`, '')
+        .trim();
+
+      if (!texto) return message.reply("👀 ¿Qué necesitas?");
+
+      await message.channel.sendTyping();
+
+      const respuesta = await getAIResponse(message.author.id, texto);
+
+      return message.reply(respuesta);
+    } catch (err) {
+      console.error(err);
+      return message.reply("❌ Error en IA.");
+    }
   }
 
+  // ======================
+  // 💬 PREFIX
+  // ======================
   const prefix = "ch!";
   if (!message.content.startsWith(prefix)) return;
 
@@ -151,7 +221,6 @@ client.on('messageCreate', async message => {
 // =======================
 client.on('interactionCreate', async interaction => {
 
-  // SLASH
   if (interaction.isChatInputCommand()) {
     const cmd = client.slashCommands.get(interaction.commandName);
     if (!cmd) return;
@@ -168,66 +237,6 @@ client.on('interactionCreate', async interaction => {
     }
   }
 
-  // BOTÓN VERIFICAR
-  if (interaction.isButton() && interaction.customId === "verificar_btn") {
-
-    const modal = new ModalBuilder()
-      .setCustomId("modal_verificacion")
-      .setTitle("Verificación");
-
-    const fields = [
-      ["roblox", "Usuario Roblox"],
-      ["discord", "Usuario Discord"],
-      ["ingreso", "¿Cómo ingresaste?"],
-      ["exp", "Experiencia RP"],
-      ["mg", "¿Qué es MG?"]
-    ];
-
-    const rows = fields.map(f =>
-      new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId(f[0])
-          .setLabel(f[1])
-          .setStyle(TextInputStyle.Short)
-          .setRequired(true)
-      )
-    );
-
-    modal.addComponents(rows);
-    return interaction.showModal(modal);
-  }
-
-  // MODAL
-  if (interaction.isModalSubmit() && interaction.customId === "modal_verificacion") {
-
-    const data = {
-      roblox: interaction.fields.getTextInputValue("roblox"),
-      discord: interaction.fields.getTextInputValue("discord"),
-      ingreso: interaction.fields.getTextInputValue("ingreso"),
-      exp: interaction.fields.getTextInputValue("exp"),
-      mg: interaction.fields.getTextInputValue("mg")
-    };
-
-    db.verificaciones[interaction.user.id] = data;
-    saveDB();
-
-    const embed = new EmbedBuilder()
-      .setColor("#00bfff")
-      .setTitle("📋 VERIFICACIÓN")
-      .addFields(
-        { name: "👤 Usuario", value: `${interaction.user}` },
-        { name: "🎮 Roblox", value: data.roblox },
-        { name: "💬 Discord", value: data.discord },
-        { name: "📥 Ingreso", value: data.ingreso },
-        { name: "🎭 Experiencia", value: data.exp },
-        { name: "📘 MG", value: data.mg }
-      );
-
-    const canal = interaction.guild.channels.cache.get(CANAL_VERIFICACION);
-    if (canal) canal.send({ embeds: [embed] });
-
-    return interaction.reply({ content: "✅ Enviado correctamente", ephemeral: true });
-  }
 });
 
 // =======================

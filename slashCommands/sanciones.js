@@ -6,17 +6,19 @@ const sancionRoles = {
   3: "1490544759289155594"
 };
 
+const MAX_SANCIONES_DIA = 5;
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('sancion')
-    .setDescription('Aplicar sanción')
+    .setDescription('Aplicar sanción a usuario')
     .addUserOption(o =>
       o.setName('usuario').setDescription('Usuario').setRequired(true))
     .addStringOption(o =>
       o.setName('motivo').setDescription('Motivo').setRequired(true))
     .addIntegerOption(o =>
       o.setName('nivel')
-        .setDescription('Nivel')
+        .setDescription('Nivel (1-3)')
         .setMinValue(1)
         .setMaxValue(3)
         .setRequired(true)),
@@ -24,13 +26,20 @@ module.exports = {
   async execute(interaction) {
     await interaction.deferReply();
 
-    if (!interaction.client.tienePermiso(interaction.member, "sancion")) {
+    const client = interaction.client;
+
+    // 🔐 PERMISOS
+    if (!client.tienePermiso(interaction.member, "sancion")) {
       return interaction.editReply("❌ No tienes permisos.");
     }
 
     const user = interaction.options.getUser('usuario');
     const motivo = interaction.options.getString('motivo');
     const nivel = interaction.options.getInteger('nivel');
+
+    if (user.id === interaction.user.id) {
+      return interaction.editReply("❌ No puedes sancionarte a ti mismo.");
+    }
 
     let member;
     try {
@@ -39,11 +48,27 @@ module.exports = {
       return interaction.editReply("❌ Usuario no está en el servidor.");
     }
 
-    const db = interaction.client.db;
+    const db = client.db;
 
-    if (!db.sanciones[user.id]) {
-      db.sanciones[user.id] = [];
+    // 📊 ANTI ABUSO STAFF
+    db.staff[interaction.user.id] ||= { sancionesHoy: 0, ultimaAccion: Date.now() };
+
+    const ahora = Date.now();
+    const ultimo = db.staff[interaction.user.id].ultimaAccion;
+
+    if (ahora - ultimo > 86400000) {
+      db.staff[interaction.user.id].sancionesHoy = 0;
     }
+
+    if (db.staff[interaction.user.id].sancionesHoy >= MAX_SANCIONES_DIA) {
+      return interaction.editReply("🚫 Límite diario de sanciones alcanzado.");
+    }
+
+    db.staff[interaction.user.id].sancionesHoy++;
+    db.staff[interaction.user.id].ultimaAccion = ahora;
+
+    // 📂 GUARDAR SANCIÓN
+    db.sanciones[user.id] ||= [];
 
     db.sanciones[user.id].push({
       motivo,
@@ -52,25 +77,26 @@ module.exports = {
       fecha: new Date().toISOString()
     });
 
-    interaction.client.saveDB();
+    client.saveDB();
 
-    // DAR ROL
+    // 🎭 DAR ROL
     try {
       const role = interaction.guild.roles.cache.get(sancionRoles[nivel]);
       if (role) await member.roles.add(role);
     } catch {}
 
-    // AUTO BAN
+    // 🚨 AUTO BAN
     if (db.sanciones[user.id].length >= 3) {
       const rolBan = interaction.guild.roles.cache.get("ID_BAN");
       if (rolBan) await member.roles.add(rolBan);
     }
 
-    // LOG
-    interaction.client.log(interaction.guild,
-      `Sanción a ${user.tag} | Nivel ${nivel} | Staff: ${interaction.user.tag}`
+    // 📁 LOG
+    client.log(interaction.guild,
+      `⚖️ Sanción\nUsuario: ${user.tag}\nNivel: ${nivel}\nStaff: ${interaction.user.tag}`
     );
 
+    // 📦 EMBED
     const embed = new EmbedBuilder()
       .setColor("#ff0000")
       .setTitle("⚖️ SANCIÓN APLICADA")
@@ -79,6 +105,7 @@ module.exports = {
 📌 Motivo: ${motivo}
 🔢 Nivel: ${nivel}/3
 👮 Staff: ${interaction.user}
+📊 Total sanciones: ${db.sanciones[user.id].length}
       `)
       .setTimestamp();
 
