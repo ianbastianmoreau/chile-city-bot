@@ -2,46 +2,65 @@ const memory = {};
 
 const respuestas = {
   saludo: [
-    "👋 Hola bro, ¿qué necesitas?",
-    "Buenas 😎 ¿en qué te ayudo?",
-    "Hola, dime 👀"
+    "👋 Hola, ¿en qué te ayudo?",
+    "👋 ¡Buenas! ¿Qué necesitas?",
+    "👋 Hola, dime en qué puedo ayudarte"
   ],
-  estado: [
-    "Todo tranquilo por acá 😎",
-    "Aquí activo, ¿y tú?",
-    "Todo chill, dime"
+  pregunta: [
+    "🤔 Interesante... cuéntame más.",
+    "👀 Explícate un poco más",
+    "🧠 Dame más detalles para ayudarte mejor"
   ],
-  default: [
-    "🤖 Interesante... cuéntame más.",
-    "Hmm, explícate mejor 👀",
-    "No te sigo mucho, dime más claro."
+  random: [
+    "😅 No entendí mucho eso, ¿puedes explicar mejor?",
+    "🤖 Hmm... intenta decirlo de otra forma",
+    "🧠 Estoy aprendiendo, dame más contexto"
   ]
 };
 
-function random(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
+// 🔁 evitar repetir
+function getRandom(arr, last) {
+  let filtered = arr.filter(r => r !== last);
+  if (filtered.length === 0) filtered = arr;
+  return filtered[Math.floor(Math.random() * filtered.length)];
 }
 
-function detectar(msg) {
+async function getAIResponse(userId, msg) {
   msg = msg.toLowerCase();
 
-  if (msg.includes("hola")) return "saludo";
-  if (msg.includes("que pasa") || msg.includes("q pasa")) return "estado";
+  if (!memory[userId]) {
+    memory[userId] = {
+      lastResponse: null,
+      lastMessage: null
+    };
+  }
 
-  return "default";
-}
+  const userMem = memory[userId];
 
-async function getAIResponse(userId, message) {
+  // ❌ evitar spam mismo mensaje
+  if (userMem.lastMessage === msg) {
+    return "🤨 Ya dijiste eso...";
+  }
 
-  if (!memory[userId]) memory[userId] = [];
+  userMem.lastMessage = msg;
 
-  // guardar memoria
-  memory[userId].push(message);
-  if (memory[userId].length > 5) memory[userId].shift();
+  let respuesta;
 
-  const tipo = detectar(message);
+  // 🧠 lógica básica
+  if (msg.includes("hola") || msg.includes("buenas")) {
+    respuesta = getRandom(respuestas.saludo, userMem.lastResponse);
+  }
+  else if (msg.includes("?") || msg.includes("que") || msg.includes("por que")) {
+    respuesta = getRandom(respuestas.pregunta, userMem.lastResponse);
+  }
+  else {
+    respuesta = getRandom(respuestas.random, userMem.lastResponse);
+  }
 
-  return random(respuestas[tipo]);
+  // guardar última respuesta
+  userMem.lastResponse = respuesta;
+
+  return respuesta;
 }
 
 module.exports = { getAIResponse };
