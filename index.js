@@ -18,7 +18,7 @@ const fs = require('fs');
 const path = require('path');
 
 // =======================
-// 🧠 BASE DE DATOS
+// 🧠 DATABASE
 // =======================
 const dbPath = './data.json';
 
@@ -27,18 +27,18 @@ if (fs.existsSync(dbPath)) {
   db = JSON.parse(fs.readFileSync(dbPath));
 }
 
-db.sanciones = db.sanciones || {};
-db.advertencias = db.advertencias || {};
-db.staff = db.staff || {};
-db.activity = db.activity || {};
-db.verificaciones = db.verificaciones || {};
+db.sanciones ||= {};
+db.advertencias ||= {};
+db.staff ||= {};
+db.activity ||= {};
+db.verificaciones ||= {};
 
 function saveDB() {
   fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
 }
 
 // =======================
-// 🤖 CLIENTE
+// 🤖 CLIENT
 // =======================
 const client = new Client({
   intents: [
@@ -52,13 +52,13 @@ client.db = db;
 client.saveDB = saveDB;
 
 // =======================
-// 📌 CONFIG
+// ⚙️ CONFIG
 // =======================
 const CANAL_VERIFICACION = "ID_CANAL";
 const ROL_VERIFICADO = "ID_ROL";
 
 // =======================
-// 📌 PERMISOS
+// 🔐 PERMISOS
 // =======================
 client.permisos = {
   aperturaon: "1487107921711206481",
@@ -76,13 +76,11 @@ client.permisos = {
   alerta: "1436890737202696192"
 };
 
-function tienePermiso(member, commandName) {
-  const roleId = client.permisos[commandName];
-  if (!roleId) return true;
-  return member.roles.cache.has(roleId);
-}
-
-client.tienePermiso = tienePermiso;
+client.tienePermiso = (member, cmd) => {
+  const role = client.permisos[cmd];
+  if (!role) return true;
+  return member.roles.cache.has(role);
+};
 
 // =======================
 // 📂 CARGAR COMANDOS
@@ -90,12 +88,14 @@ client.tienePermiso = tienePermiso;
 client.prefixCommands = new Collection();
 client.slashCommands = new Collection();
 
+// PREFIX
 fs.readdirSync('./commands').forEach(file => {
   if (!file.endsWith('.js')) return;
   const cmd = require(`./commands/${file}`);
   client.prefixCommands.set(cmd.name, cmd);
 });
 
+// SLASH
 fs.readdirSync('./slashCommands').forEach(file => {
   if (!file.endsWith('.js')) return;
   const cmd = require(`./slashCommands/${file}`);
@@ -117,22 +117,22 @@ const { getAIResponse } = require('./utils/ia');
 // =======================
 // 💬 MENSAJES (IA + PREFIX)
 // =======================
-client.on('messageCreate', async (message) => {
+client.on('messageCreate', async message => {
   if (message.author.bot) return;
 
-  // ===== IA =====
+  // IA por mención
   if (message.mentions.has(client.user)) {
-    const contenido = message.content.replace(`<@${client.user.id}>`, '').trim();
+    const texto = message.content.replace(`<@${client.user.id}>`, '').trim();
 
-    if (!contenido) return message.reply("👀 ¿Qué necesitas?");
+    if (!texto) return message.reply("👀 ¿Qué necesitas?");
 
     await message.channel.sendTyping();
+    const respuesta = await getAIResponse(message.author.id, texto);
 
-    const respuesta = await getAIResponse(message.author.id, contenido);
     return message.reply(respuesta);
   }
 
-  // ===== PREFIX =====
+  // PREFIX
   const prefix = "ch!";
   if (!message.content.startsWith(prefix)) return;
 
@@ -157,35 +157,34 @@ client.on('messageCreate', async (message) => {
 // =======================
 // ⚡ INTERACCIONES
 // =======================
-client.on('interactionCreate', async (interaction) => {
+client.on('interactionCreate', async interaction => {
 
-  // ===== SLASH =====
+  // SLASH
   if (interaction.isChatInputCommand()) {
-    const command = client.slashCommands.get(interaction.commandName);
-    if (!command) return;
+    const cmd = client.slashCommands.get(interaction.commandName);
+    if (!cmd) return;
 
     if (!client.tienePermiso(interaction.member, interaction.commandName)) {
       return interaction.reply({ content: "❌ No permisos", ephemeral: true });
     }
 
     try {
-      await command.execute(interaction);
+      await cmd.execute(interaction);
     } catch (err) {
       console.error(err);
       interaction.reply({ content: "❌ Error", ephemeral: true });
     }
   }
 
-  // ===== BOTONES =====
+  // BOTÓN
   if (interaction.isButton()) {
 
     if (interaction.customId === "verificar_btn") {
-
       const modal = new ModalBuilder()
         .setCustomId("modal_verificacion")
         .setTitle("Verificación");
 
-      const preguntas = [
+      const fields = [
         ["roblox", "Usuario Roblox"],
         ["discord", "Usuario Discord"],
         ["ingreso", "¿Cómo ingresaste?"],
@@ -193,13 +192,12 @@ client.on('interactionCreate', async (interaction) => {
         ["mg", "¿Qué es MG?"]
       ];
 
-      const rows = preguntas.map(p =>
+      const rows = fields.map(f =>
         new ActionRowBuilder().addComponents(
           new TextInputBuilder()
-            .setCustomId(p[0])
-            .setLabel(p[1])
+            .setCustomId(f[0])
+            .setLabel(f[1])
             .setStyle(TextInputStyle.Short)
-            .setRequired(true)
         )
       );
 
@@ -208,12 +206,12 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     if (interaction.customId.startsWith("aceptar_")) {
-      const userId = interaction.customId.split("_")[1];
-      const member = await interaction.guild.members.fetch(userId);
+      const id = interaction.customId.split("_")[1];
+      const member = await interaction.guild.members.fetch(id);
 
       if (member) await member.roles.add(ROL_VERIFICADO);
 
-      db.verificaciones[userId] = "aceptado";
+      db.verificaciones[id] = "aceptado";
       saveDB();
 
       return interaction.reply("✅ Aceptado");
@@ -222,30 +220,9 @@ client.on('interactionCreate', async (interaction) => {
     if (interaction.customId.startsWith("rechazar_")) {
       return interaction.reply("❌ Rechazado");
     }
-
-    if (interaction.customId.startsWith("supervisar_")) {
-      const userId = interaction.customId.split("_")[1];
-
-      const canal = await interaction.guild.channels.create({
-        name: `verificacion-${userId}`,
-        type: ChannelType.GuildText,
-        permissionOverwrites: [
-          {
-            id: interaction.guild.id,
-            deny: [PermissionFlagsBits.ViewChannel]
-          },
-          {
-            id: userId,
-            allow: [PermissionFlagsBits.ViewChannel]
-          }
-        ]
-      });
-
-      return interaction.reply(`📁 ${canal}`);
-    }
   }
 
-  // ===== MODAL =====
+  // MODAL
   if (interaction.isModalSubmit()) {
 
     if (interaction.customId === "modal_verificacion") {
@@ -264,27 +241,22 @@ client.on('interactionCreate', async (interaction) => {
       const embed = new EmbedBuilder()
         .setColor("#00bfff")
         .setTitle("📋 VERIFICACIÓN")
-        .setDescription(`
-👤 ${interaction.user}
-
-🎮 ${data.roblox}
-💬 ${data.discord}
-📥 ${data.ingreso}
-🎭 ${data.exp}
-📘 ${data.mg}
-        `);
+        .setDescription(`👤 ${interaction.user}`)
+        .addFields(
+          { name: "Roblox", value: data.roblox },
+          { name: "Discord", value: data.discord },
+          { name: "Ingreso", value: data.ingreso },
+          { name: "Experiencia", value: data.exp },
+          { name: "MG", value: data.mg }
+        );
 
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId(`aceptar_${interaction.user.id}`).setLabel("Aceptar").setStyle(ButtonStyle.Success),
-        new ButtonBuilder().setCustomId(`rechazar_${interaction.user.id}`).setLabel("Rechazar").setStyle(ButtonStyle.Danger),
-        new ButtonBuilder().setCustomId(`supervisar_${interaction.user.id}`).setLabel("Supervisar").setStyle(ButtonStyle.Secondary)
+        new ButtonBuilder().setCustomId(`rechazar_${interaction.user.id}`).setLabel("Rechazar").setStyle(ButtonStyle.Danger)
       );
 
       const canal = interaction.guild.channels.cache.get(CANAL_VERIFICACION);
-
-      if (canal) {
-        await canal.send({ embeds: [embed], components: [row] });
-      }
+      if (canal) await canal.send({ embeds: [embed], components: [row] });
 
       return interaction.reply({ content: "✅ Enviado", ephemeral: true });
     }
@@ -293,7 +265,7 @@ client.on('interactionCreate', async (interaction) => {
 });
 
 // =======================
-// 🌐 RENDER FIX
+// 🌐 WEB (RENDER FIX)
 // =======================
 require("http").createServer((req, res) => {
   res.end("Bot activo");
