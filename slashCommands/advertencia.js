@@ -11,24 +11,31 @@ const advertRoles = {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('advertencia')
-    .setDescription('Advertir usuario')
-    .addUserOption(o => o.setName('usuario').setRequired(true))
-    .addStringOption(o => o.setName('motivo').setRequired(true))
-    .addIntegerOption(o => o.setName('numero').setMinValue(1).setMaxValue(5).setRequired(true)),
+    .setDescription('Advertir a un usuario')
+    .addUserOption(o =>
+      o.setName('usuario')
+        .setDescription('Usuario a advertir')
+        .setRequired(true))
+    .addStringOption(o =>
+      o.setName('motivo')
+        .setDescription('Motivo de la advertencia')
+        .setRequired(true))
+    .addIntegerOption(o =>
+      o.setName('numero')
+        .setDescription('Nivel de advertencia (1-5)')
+        .setMinValue(1)
+        .setMaxValue(5)
+        .setRequired(true)),
 
   async execute(interaction) {
     await interaction.deferReply();
 
-    if (!interaction.client.tienePermiso(interaction.member, "advertencia")) {
+    if (!interaction.client.tienePermiso(interaction.member, "advertencia"))
       return interaction.editReply("❌ No tienes permisos.");
-    }
 
     const user = interaction.options.getUser('usuario');
     const motivo = interaction.options.getString('motivo');
     const num = interaction.options.getInteger('numero');
-
-    if (user.id === interaction.user.id)
-      return interaction.editReply("❌ No puedes advertirte.");
 
     let member;
     try {
@@ -36,9 +43,6 @@ module.exports = {
     } catch {
       return interaction.editReply("❌ Usuario no encontrado.");
     }
-
-    if (member.roles.highest.position >= interaction.member.roles.highest.position)
-      return interaction.editReply("❌ No puedes sancionar a alguien superior.");
 
     const db = interaction.client.db;
     db.advertencias[user.id] ||= [];
@@ -55,16 +59,12 @@ module.exports = {
     const role = interaction.guild.roles.cache.get(advertRoles[num]);
     if (role) await member.roles.add(role).catch(() => {});
 
-    interaction.client.log(interaction.guild,
-      `ADVERTENCIA | ${user.tag} | Nivel ${num} | Staff: ${interaction.user.tag}`
-    );
-
     const embed = new EmbedBuilder()
       .setColor("#ffcc00")
       .setTitle("⚠️ ADVERTENCIA")
       .setDescription(`👤 <@${user.id}>\n📌 ${motivo}\n🔢 ${num}/5\n👮 ${interaction.user}`)
       .setTimestamp();
 
-    await interaction.editReply({ embeds: [embed] });
+    interaction.editReply({ embeds: [embed] });
   }
 };

@@ -15,12 +15,16 @@ module.exports = {
     .setName('sancionstaff')
     .setDescription('Sancionar miembro del staff')
     .addUserOption(o =>
-      o.setName('staff').setDescription('Usuario').setRequired(true))
+      o.setName('staff')
+        .setDescription('Usuario del staff')
+        .setRequired(true))
     .addStringOption(o =>
-      o.setName('razon').setDescription('Razón').setRequired(true))
+      o.setName('razon')
+        .setDescription('Razón de la sanción')
+        .setRequired(true))
     .addIntegerOption(o =>
       o.setName('numero')
-        .setDescription('Nivel (1-5)')
+        .setDescription('Nivel de sanción (1-5)')
         .setMinValue(1)
         .setMaxValue(5)
         .setRequired(true)),
@@ -30,18 +34,15 @@ module.exports = {
 
     const client = interaction.client;
 
-    // 🔐 PERMISOS
-    if (!client.tienePermiso(interaction.member, "sancionstaff")) {
+    if (!client.tienePermiso(interaction.member, "sancionstaff"))
       return interaction.editReply("❌ No tienes permisos.");
-    }
 
     const user = interaction.options.getUser('staff');
     const nivel = interaction.options.getInteger('numero');
     const razon = interaction.options.getString('razon');
 
-    if (user.id === interaction.user.id) {
-      return interaction.editReply("❌ No puedes sancionarte a ti mismo.");
-    }
+    if (user.id === interaction.user.id)
+      return interaction.editReply("❌ No puedes sancionarte.");
 
     let member;
     try {
@@ -50,65 +51,51 @@ module.exports = {
       return interaction.editReply("❌ Usuario no encontrado.");
     }
 
+    // 🔥 ANTI ABUSO
     const db = client.db;
+    db.staff[interaction.user.id] ||= { count: 0, last: Date.now() };
 
-    // 📊 ANTI ABUSO STAFF
-    db.staff[interaction.user.id] ||= { staffSancionesHoy: 0, ultimaAccion: Date.now() };
-
-    const ahora = Date.now();
-    const ultimo = db.staff[interaction.user.id].ultimaAccion;
-
-    if (ahora - ultimo > 86400000) {
-      db.staff[interaction.user.id].staffSancionesHoy = 0;
+    if (Date.now() - db.staff[interaction.user.id].last > 86400000) {
+      db.staff[interaction.user.id].count = 0;
     }
 
-    if (db.staff[interaction.user.id].staffSancionesHoy >= MAX_SANCIONES_STAFF_DIA) {
-      return interaction.editReply("🚫 Límite diario de sanciones staff alcanzado.");
-    }
+    if (db.staff[interaction.user.id].count >= MAX_SANCIONES_STAFF_DIA)
+      return interaction.editReply("🚫 Límite diario alcanzado.");
 
-    db.staff[interaction.user.id].staffSancionesHoy++;
-    db.staff[interaction.user.id].ultimaAccion = ahora;
+    db.staff[interaction.user.id].count++;
+    db.staff[interaction.user.id].last = Date.now();
 
-    // 📂 HISTORIAL STAFF
+    // 📂 HISTORIAL
     db.staff[user.id] ||= { historial: [] };
-
-    db.staff[user.id].historial ||= [];
 
     db.staff[user.id].historial.push({
       razon,
       nivel,
-      responsable: interaction.user.id,
+      staff: interaction.user.id,
       fecha: new Date().toISOString()
     });
 
     client.saveDB();
 
-    // 🎭 DAR ROL
-    try {
-      const role = interaction.guild.roles.cache.get(staffRoles[nivel]);
-      if (role) await member.roles.add(role);
-    } catch {}
+    // 🎭 ROL
+    const role = interaction.guild.roles.cache.get(staffRoles[nivel]);
+    if (role) await member.roles.add(role).catch(() => {});
 
-    // 📁 LOG
-    client.log(interaction.guild,
-      `🛡️ Sanción STAFF\nUsuario: ${user.tag}\nNivel: ${nivel}\nAdmin: ${interaction.user.tag}`
-    );
+    client.log(interaction.guild, `STAFF SANCIONADO: ${user.tag}`);
 
-    // 📦 EMBED
     const embed = new EmbedBuilder()
       .setColor("#ff5555")
       .setTitle("🛡️ SANCIÓN STAFF")
-.setDescription(`
+      .setDescription(`
 👮 Staff: <@${user.id}>
 📌 Razón: ${razon}
 🔢 Nivel: ${nivel}/5
 👤 Responsable: ${interaction.user}
 
-📊 Total sanciones: ${db.staff[user.id].historial.length}
-⚠️ Puede llevar a expulsión del staff.
+📊 Total: ${db.staff[user.id].historial.length}
       `)
       .setTimestamp();
 
-    await interaction.editReply({ embeds: [embed] });
+    interaction.editReply({ embeds: [embed] });
   }
 };
