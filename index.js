@@ -25,9 +25,11 @@ const client = new Client({
 // =======================
 // 🔥 MONGO
 // =======================
+const mongoose = require("mongoose");
+
 mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log("🔥 Mongo conectado"))
-.catch(err => console.error(err));
+  .then(() => console.log("🟢 Mongo conectado"))
+  .catch(err => console.error("❌ Mongo error:", err));
 
 // =======================
 // 📁 CONFIG
