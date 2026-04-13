@@ -25,8 +25,6 @@ const client = new Client({
 // =======================
 // 🔥 MONGO
 // =======================
-const mongoose = require("mongoose");
-
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("🟢 Mongo conectado"))
   .catch(err => console.error("❌ Mongo error:", err));
@@ -40,16 +38,20 @@ const CANAL_LOGS = "1492680979154731049";
 // 📁 LOGS EMBED
 // =======================
 client.log = async (guild, mensaje) => {
-  const canal = guild.channels.cache.get(CANAL_LOGS);
-  if (!canal) return;
+  try {
+    const canal = guild.channels.cache.get(CANAL_LOGS);
+    if (!canal) return;
 
-  const embed = new EmbedBuilder()
-    .setColor("Blue")
-    .setTitle("📁 LOG DEL SISTEMA")
-    .setDescription(mensaje)
-    .setTimestamp();
+    const embed = new EmbedBuilder()
+      .setColor("Blue")
+      .setTitle("📁 LOG DEL SISTEMA")
+      .setDescription(mensaje)
+      .setTimestamp();
 
-  canal.send({ embeds: [embed] });
+    canal.send({ embeds: [embed] });
+  } catch (err) {
+    console.error("Error logs:", err);
+  }
 };
 
 // =======================
@@ -77,7 +79,7 @@ client.tienePermisoPolicial = (member, tipo) => {
 };
 
 // =======================
-// 📂 COMANDOS (CARPETAS)
+// 📂 COMANDOS (FIX)
 // =======================
 client.prefixCommands = new Collection();
 
@@ -90,14 +92,25 @@ const loadCommands = (dir) => {
     if (fs.lstatSync(fullPath).isDirectory()) {
       loadCommands(fullPath);
     } else if (file.endsWith(".js")) {
-      const command = require(fullPath);
-      if (!command.name) return;
-      client.prefixCommands.set(command.name, command);
+      try {
+        const command = require(fullPath);
+
+        if (!command.name) {
+          console.warn(`⚠️ Comando sin nombre: ${file}`);
+          continue; // 🔥 IMPORTANTE (NO return)
+        }
+
+        client.prefixCommands.set(command.name, command);
+        console.log(`✅ Cargado: ${command.name}`);
+      } catch (err) {
+        console.error(`❌ Error cargando ${file}:`, err);
+      }
     }
   }
 };
 
-loadCommands("./commands");
+// 🔥 RUTA ABSOLUTA (FIX RENDER)
+loadCommands(path.join(__dirname, "commands"));
 
 // =======================
 // 💬 MENSAJES
@@ -108,7 +121,7 @@ client.on('messageCreate', async message => {
 
   if (message.author.bot) return;
 
-  // 🚫 ANTI SPAM (roles)
+  // 🚫 ANTI SPAM
   if (message.mentions.roles.size > 2) {
     return message.delete().catch(() => {});
   }
@@ -146,6 +159,19 @@ client.on("guildMemberAdd", member => {
 });
 
 // =======================
+// 🚀 READY
+// =======================
+client.once("ready", () => {
+  console.log(`🤖 Bot listo como ${client.user.tag}`);
+});
+
+// =======================
 // 🔐 LOGIN
 // =======================
 client.login(process.env.TOKEN);
+
+// =======================
+// 💥 ANTI CRASH
+// =======================
+process.on('unhandledRejection', console.error);
+process.on('uncaughtException', console.error);
