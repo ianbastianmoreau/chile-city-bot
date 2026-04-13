@@ -1,50 +1,56 @@
-const Vehiculo = require("../models/Vehiculo");
-const DNI = require("../models/DNI");
 const { EmbedBuilder } = require("discord.js");
+const Vehiculo = require("../../models/Vehiculo");
 
 module.exports = {
-  name: "registrar-vehiculo",
+  name: "registrarvehiculo",
 
   async execute(message, args) {
 
-    const [slot, marca, modelo, patente, año] = args;
+    if (args.length < 7) {
+      return message.reply("❌ Uso: ch!registrarvehiculo slot usuario nombre rut roblox marca modelo patente año");
+    }
 
-    if (!slot || slot > 3)
-      return message.reply("❌ Slot inválido (1-3)");
+    const slot = parseInt(args[0]);
+    const user = message.mentions.users.first();
 
-    const dni = await DNI.findOne({ userId: message.author.id });
-    if (!dni) return message.reply("❌ No tienes DNI.");
+    if (!user) return message.reply("❌ Debes mencionar un usuario.");
+    if (![1,2,3].includes(slot)) return message.reply("❌ Slot debe ser 1, 2 o 3.");
 
-    const existe = await Vehiculo.findOne({
-      userId: message.author.id,
-      slot
-    });
+    const [_, __, nombre, rut, roblox, marca, modelo, patente, año] = args;
 
-    if (existe) return message.reply("❌ Ya tienes vehículo en ese slot.");
+    const existe = await Vehiculo.findOne({ userId: user.id, slot });
+    if (existe) return message.reply("❌ Ese slot ya está ocupado.");
 
     const vehiculo = new Vehiculo({
-      userId: message.author.id,
+      userId: user.id,
       slot,
+      nombre,
+      rut,
+      roblox,
       marca,
       modelo,
       patente,
-      año
+      año,
+      creadoPor: message.author.id
     });
 
     await vehiculo.save();
 
     const embed = new EmbedBuilder()
       .setColor("Blue")
-      .setTitle(`🚗 VEHÍCULO REGISTRO ${slot}`)
+      .setTitle(`🚗 REGISTRO VEHICULAR #${slot}`)
       .setDescription(`
-👤 ${dni.nombres} ${dni.apellidos}
-🆔 ${dni.rut}
+👤 ${nombre}
+🆔 ${rut}
+🎮 ${roblox}
 
 🚘 ${marca} ${modelo}
-📌 ${patente}
-📅 ${año}
+📅 Año: ${año}
+🔢 Patente: ${patente}
+
+👮 Registrado por: ${message.author}
       `)
-      .setImage(dni.robloxAvatar);
+      .setTimestamp();
 
     message.reply({ embeds: [embed] });
   }

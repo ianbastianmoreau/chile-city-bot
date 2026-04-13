@@ -1,21 +1,20 @@
 const { Schema, model } = require("mongoose");
 
-const antecedenteSchema = new Schema({
+const multaSchema = new Schema({
   userId: String,
   nombre: String,
   rut: String,
-  delitos: String,
+  articulos: String,
   foto: String,
 
   placa: String,
   rango: String,
   dispositivo: String,
   comisaria: String,
-  tipo: String,
 
   lugar: String,
   fecha: String,
-  fiscal: String
+  vehiculoIncautado: String
 });
 
-module.exports = model("Antecedente", antecedenteSchema);
+module.exports = model("Multa", multaSchema);

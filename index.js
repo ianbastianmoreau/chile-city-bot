@@ -1,11 +1,13 @@
 const {
   Client,
   GatewayIntentBits,
-  Collection
+  Collection,
+  EmbedBuilder
 } = require('discord.js');
 
 require('dotenv').config();
 const fs = require('fs');
+const path = require('path');
 const mongoose = require("mongoose");
 
 // =======================
@@ -15,16 +17,17 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers
   ]
 });
 
 // =======================
-// 🔥 MONGODB
+// 🔥 MONGO
 // =======================
 mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log("🔥 Mongo conectado"))
-.catch(err => console.error("❌ Mongo error:", err));
+.catch(err => console.error(err));
 
 // =======================
 // 📁 CONFIG
@@ -32,27 +35,26 @@ mongoose.connect(process.env.MONGO_URI)
 const CANAL_LOGS = "1492680979154731049";
 
 // =======================
-// 📁 LOGS
+// 📁 LOGS EMBED
 // =======================
 client.log = async (guild, mensaje) => {
-  try {
-    const canal = guild.channels.cache.get(CANAL_LOGS);
-    if (!canal) return;
-    canal.send(`📁 LOG\n${mensaje}`);
-  } catch (err) {
-    console.error("Error logs:", err);
-  }
+  const canal = guild.channels.cache.get(CANAL_LOGS);
+  if (!canal) return;
+
+  const embed = new EmbedBuilder()
+    .setColor("Blue")
+    .setTitle("📁 LOG DEL SISTEMA")
+    .setDescription(mensaje)
+    .setTimestamp();
+
+  canal.send({ embeds: [embed] });
 };
 
 // =======================
 // 🔐 PERMISOS
 // =======================
 client.permisos = {
-  advertencia: "1487107921711206481",
-  ban: "1491174604167708712",
-  comunicado: "1491174604167708712",
-  sancion: "1487107921711206481",
-  sancionstaff: "1491174604167708712"
+  comunicado: "1491174604167708712"
 };
 
 client.tienePermiso = (member, cmd) => {
@@ -61,13 +63,22 @@ client.tienePermiso = (member, cmd) => {
   return member.roles.cache.has(role);
 };
 
+client.permisosPolicial = {
+  antecedentes: ["1482910995331420250", "1482911130732200058"],
+  multas: ["1482910995331420250", "1482911130732200058", "1484669482877321306"],
+  corrales: ["1482910995331420250", "1482911130732200058", "1484669482877321306"]
+};
+
+client.tienePermisoPolicial = (member, tipo) => {
+  const roles = client.permisosPolicial[tipo];
+  return member.roles.cache.some(r => roles.includes(r.id));
+};
+
 // =======================
-// 📂 COMANDOS
+// 📂 COMANDOS (CARPETAS)
 // =======================
 client.prefixCommands = new Collection();
-client.slashCommands = new Collection();
 
-// PREFIX
 const loadCommands = (dir) => {
   const files = fs.readdirSync(dir);
 
@@ -75,9 +86,10 @@ const loadCommands = (dir) => {
     const fullPath = path.join(dir, file);
 
     if (fs.lstatSync(fullPath).isDirectory()) {
-      loadCommands(fullPath); // 🔁 entra a subcarpetas
+      loadCommands(fullPath);
     } else if (file.endsWith(".js")) {
       const command = require(fullPath);
+      if (!command.name) return;
       client.prefixCommands.set(command.name, command);
     }
   }
@@ -85,144 +97,53 @@ const loadCommands = (dir) => {
 
 loadCommands("./commands");
 
-// SLASH
-if (fs.existsSync('./slashCommands')) {
-  const slashFiles = fs.readdirSync('./slashCommands').filter(f => f.endsWith(".js"));
-
-  for (const file of slashFiles) {
-    const cmd = require(`./slashCommands/${file}`);
-    if (!cmd.data) continue;
-    client.slashCommands.set(cmd.data.name, cmd);
-  }
-}
-
-// =======================
-// 🚀 READY
-// =======================
-client.once('clientReady', () => {
-  console.log(`✅ Bot listo como ${client.user.tag}`);
-});
-
-// =======================
-// 🧠 IA SIMPLE
-// =======================
-const memory = {};
-
-async function getAIResponse(userId, msg) {
-  if (!memory[userId]) memory[userId] = [];
-
-  memory[userId].push(msg);
-  if (memory[userId].length > 5) memory[userId].shift();
-
-  const lower = msg.toLowerCase();
-
-  if (lower.includes("hola")) return "👋 Hola, ¿en qué te ayudo?";
-  if (lower.includes("ip")) return "🌐 IP: ChileCity";
-  if (lower.length < 3) return "🤨 dime algo más claro";
-
-  return "🤖 No entendí bien, intenta explicar mejor.";
-}
-
 // =======================
 // 💬 MENSAJES
 // =======================
+const cooldown = new Map();
+
 client.on('messageCreate', async message => {
 
   if (message.author.bot) return;
 
+  // 🚫 ANTI SPAM (roles)
+  if (message.mentions.roles.size > 2) {
+    return message.delete().catch(() => {});
+  }
+
   const prefix = "ch!";
+  if (!message.content.startsWith(prefix)) return;
 
-  // ======================
-  // 💬 PREFIX COMMANDS
-  // ======================
-  if (message.content.startsWith(prefix)) {
+  // ⏱ cooldown
+  if (cooldown.has(message.author.id)) return;
+  cooldown.set(message.author.id, true);
+  setTimeout(() => cooldown.delete(message.author.id), 2000);
 
-    const args = message.content.slice(prefix.length).trim().split(/ +/);
-    const cmdName = args.shift().toLowerCase();
+  const args = message.content.slice(prefix.length).trim().split(/ +/);
+  const cmd = args.shift().toLowerCase();
 
-    const command = client.prefixCommands.get(cmdName);
-    if (!command) return;
-
-    if (!client.tienePermiso(message.member, cmdName)) {
-      return message.reply("❌ No tienes permisos.");
-    }
-
-    try {
-      await command.execute(message, args, client);
-    } catch (err) {
-      console.error(err);
-      message.reply("❌ Error en comando.");
-    }
-
-    return; // 🔥 IMPORTANTE: corta aquí
-  }
-
-  // ======================
-  // 🧠 IA POR MENCIÓN
-  // ======================
-  if (message.mentions.has(client.user)) {
-    try {
-
-      const texto = message.content
-        .replace(`<@${client.user.id}>`, '')
-        .replace(`<@!${client.user.id}>`, '')
-        .trim();
-
-      if (!texto) return message.reply("👀 ¿Qué necesitas?");
-
-      await message.channel.sendTyping();
-
-      const respuesta = await getAIResponse(message.author.id, texto);
-
-      if (!respuesta) return;
-
-      return message.reply(respuesta);
-
-    } catch (err) {
-      console.error(err);
-      return message.reply("❌ Error en IA.");
-    }
-  }
-
-});
-
-// =======================
-// ⚡ INTERACCIONES
-// =======================
-client.on('interactionCreate', async interaction => {
-
-  if (!interaction.isChatInputCommand()) return;
-
-  const cmd = client.slashCommands.get(interaction.commandName);
-  if (!cmd) return;
-
-  if (!client.tienePermiso(interaction.member, interaction.commandName)) {
-    return interaction.reply({ content: "❌ No permisos", ephemeral: true });
-  }
+  const command = client.prefixCommands.get(cmd);
+  if (!command) return;
 
   try {
-    await cmd.execute(interaction);
+    await command.execute(message, args, client);
   } catch (err) {
     console.error(err);
-    interaction.reply({ content: "❌ Error", ephemeral: true });
+    message.reply("❌ Error en comando.");
   }
-
 });
 
 // =======================
-// 🌐 RENDER KEEP ALIVE
+// 🎉 BIENVENIDA
 // =======================
-require("http").createServer((req, res) => {
-  res.end("Bot activo");
-}).listen(process.env.PORT || 3000);
+client.on("guildMemberAdd", member => {
+  const canal = member.guild.systemChannel;
+  if (!canal) return;
+
+  canal.send(`👋 Bienvenido ${member} a **Chile City RP**`);
+});
 
 // =======================
 // 🔐 LOGIN
 // =======================
 client.login(process.env.TOKEN);
-
-// =======================
-// 💥 ANTI CRASH
-// =======================
-process.on('unhandledRejection', console.error);
-process.on('uncaughtException', console.error);

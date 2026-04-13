@@ -1,12 +1,21 @@
-const mongoose = require("mongoose");
+const { Schema, model } = require("mongoose");
 
-const schema = new mongoose.Schema({
+const vehiculoSchema = new Schema({
   userId: String,
-  slot: Number,
+
+  slot: Number, // 1, 2 o 3
+
+  nombre: String,
+  rut: String,
+  roblox: String,
+
   marca: String,
   modelo: String,
   patente: String,
-  año: String
+  año: String,
+
+  creadoPor: String,
+  fecha: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model("Vehiculo", schema);
+module.exports = model("Vehiculo", vehiculoSchema);
