@@ -1,4 +1,3 @@
-const { EmbedBuilder } = require("discord.js");
 const Corral = require("../../models/Corral");
 
 module.exports = {
@@ -7,33 +6,16 @@ module.exports = {
   async execute(message, args, client) {
 
     if (!client.tienePermisoPolicial(message.member, "corrales"))
-      return message.reply("❌ No tienes permisos.");
+      return message.reply("❌ No permisos.");
 
-    if (args.length < 1)
-      return message.reply("❌ Uso: ch!liberar-corrales patente");
+    const patente = args[0]?.toUpperCase();
+    if (!patente) return;
 
-    const patente = args[0];
-
-    const data = await Corral.findOne({ patente });
-    if (!data) return message.reply("❌ Vehículo no está en corrales.");
+    const existe = await Corral.findOne({ patente });
+    if (!existe) return message.reply("❌ No está incautado.");
 
     await Corral.deleteOne({ patente });
 
-    const embed = new EmbedBuilder()
-      .setColor("Green")
-      .setTitle("✅ VEHÍCULO LIBERADO")
-      .setDescription(`
-🚗 Vehículo: ${data.vehiculo}
-🔖 Patente: ${data.patente}
-
-👤 Propietario: ${data.nombre}
-
-👮 Liberado por: ${message.author.tag}
-📅 Fecha: ${new Date().toLocaleString("es-CL")}
-      `);
-
-    message.reply({ embeds: [embed] });
-
-    client.log(message.guild, `✅ Vehículo liberado: ${patente}`);
+    message.reply("✅ Vehículo liberado.");
   }
 };

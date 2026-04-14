@@ -1,10 +1,3 @@
-const {
-  EmbedBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle
-} = require("discord.js");
-
 const Antecedente = require("../../models/Antecedente");
 const Multa = require("../../models/Multa");
 const Corral = require("../../models/Corral");
@@ -12,50 +5,23 @@ const Corral = require("../../models/Corral");
 module.exports = {
   name: "panel-policial",
 
-  async execute(message, args, client) {
-
-    if (!client.tienePermisoPolicial(message.member, "antecedentes"))
-      return message.reply("❌ No tienes permisos.");
-
-    if (!args[0])
-      return message.reply("❌ Uso: ch!panel-policial RUT");
+  async execute(message, args) {
 
     const rut = args[0];
+    if (!rut) return;
 
-    const embed = new EmbedBuilder()
-      .setColor("DarkBlue")
-      .setTitle("🚔 SISTEMA MDT POLICIAL")
-      .setDescription(`
-🔍 Consulta de información policial
+    const a = await Antecedente.find({ rut });
+    const m = await Multa.find({ rut });
+    const c = await Corral.find({ rut });
 
-🆔 RUT: **${rut}**
+    message.reply(`
+📊 PANEL POLICIAL
 
-Selecciona una opción abajo para ver datos del sujeto.
-      `)
-      .setFooter({ text: "Chile City RP | Sistema Policial" });
+🆔 ${rut}
 
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`antecedentes_${rut}`)
-        .setLabel("Antecedentes")
-        .setStyle(ButtonStyle.Primary),
-
-      new ButtonBuilder()
-        .setCustomId(`multas_${rut}`)
-        .setLabel("Multas")
-        .setStyle(ButtonStyle.Secondary),
-
-      new ButtonBuilder()
-        .setCustomId(`corrales_${rut}`)
-        .setLabel("Corrales")
-        .setStyle(ButtonStyle.Danger),
-
-      new ButtonBuilder()
-        .setCustomId(`info_${rut}`)
-        .setLabel("Info Completa")
-        .setStyle(ButtonStyle.Success)
-    );
-
-    message.reply({ embeds: [embed], components: [row] });
+📋 Antecedentes: ${a.length}
+💸 Multas: ${m.length}
+🚨 Corrales: ${c.length}
+    `);
   }
 };

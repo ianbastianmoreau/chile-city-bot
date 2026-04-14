@@ -6,52 +6,71 @@ module.exports = {
 
   async execute(message, args, client) {
 
-    if (!client.tienePermisoPolicial(message.member, "multas"))
+    if (!client.tienePermisoPolicial(message.member, "multas")) {
       return message.reply("❌ No tienes permisos.");
+    }
 
-    if (args.length < 8)
-      return message.reply("❌ Uso: ch!multa nombre rut articulos placa rango dispositivo comisaria lugar");
+    if (args.length < 10) {
+      return message.reply("❌ Uso:\nch!multa Nombre-Apellido RUT Articulos FotoURL Placa Rango Dispositivo Comisaria Lugar Vehiculo(SI/NO)");
+    }
 
-    const [nombre, rut, articulos, placa, rango, dispositivo, comisaria, lugar] = args;
-
-    const fecha = new Date().toLocaleString("es-CL");
-
-    const data = new Multa({
-      userId: message.author.id,
+    const [
       nombre,
       rut,
       articulos,
+      foto,
       placa,
       rango,
       dispositivo,
       comisaria,
       lugar,
-      fecha,
-      vehiculo: "No especificado"
+      vehiculo
+    ] = args;
+
+    const multa = new Multa({
+      userId: message.author.id,
+      nombre,
+      rut,
+      articulos,
+      foto,
+      placa,
+      rango,
+      dispositivo,
+      comisaria,
+      lugar,
+      vehiculo,
+      fecha: new Date().toLocaleString("es-CL")
     });
 
-    await data.save();
+    await multa.save();
 
     const embed = new EmbedBuilder()
       .setColor("Orange")
       .setTitle("💸 MULTA REGISTRADA")
-      .setDescription(`
-👤 Nombre: ${nombre}
-🆔 RUT: ${rut}
 
-⚖️ Artículos: ${articulos}
+      .addFields(
+        { name: "👤 Datos del Sujeto", value:
+`Nombre: ${nombre}
+RUT: ${rut}
+Artículos: ${articulos}`, inline: false },
 
-👮 Placa: ${placa}
-🎖 Rango: ${rango}
-📱 Dispositivo: ${dispositivo}
-🏛 Comisaría: ${comisaria}
+        { name: "👮 Datos Policiales", value:
+`Placa: ${placa}
+Rango: ${rango}
+Dispositivo: ${dispositivo}
+Comisaría: ${comisaria}`, inline: false },
 
-📍 Lugar: ${lugar}
-📅 Fecha: ${fecha}
-      `);
+        { name: "📍 Datos Multa", value:
+`Lugar: ${lugar}
+Fecha: ${multa.fecha}
+Vehículo Incautado: ${vehiculo}`, inline: false }
+      )
+
+      .setImage(foto)
+      .setFooter({ text: "Sistema Multas | Chile City RP" });
 
     message.reply({ embeds: [embed] });
 
-    client.log(message.guild, `💸 Multa aplicada a ${nombre}`);
+    client.log(message.guild, `💸 Multa registrada para ${nombre}`);
   }
 };

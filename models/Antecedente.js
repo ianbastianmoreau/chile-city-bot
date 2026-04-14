@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const antecedenteSchema = new mongoose.Schema({
+const AntecedenteSchema = new mongoose.Schema({
 
   userId: String,
   nombre: String,
@@ -20,4 +20,4 @@ const antecedenteSchema = new mongoose.Schema({
 
 });
 
-module.exports = mongoose.model("Antecedente", antecedenteSchema);
+module.exports = mongoose.model("Antecedente", AntecedenteSchema);

@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 
-const multaSchema = new mongoose.Schema({
-  userId: String,
+const MultaSchema = new mongoose.Schema({
 
+  userId: String,
   nombre: String,
   rut: String,
   articulos: String,
@@ -16,6 +16,7 @@ const multaSchema = new mongoose.Schema({
   lugar: String,
   fecha: String,
   vehiculo: String
+
 });
 
-module.exports = mongoose.model("Multa", multaSchema);
+module.exports = mongoose.model("Multa", MultaSchema);

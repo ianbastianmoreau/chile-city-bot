@@ -6,19 +6,29 @@ module.exports = {
 
   async execute(message, args, client) {
 
-    if (!client.tienePermisoPolicial(message.member, "antecedentes"))
+    if (!client.tienePermisoPolicial(message.member, "antecedentes")) {
       return message.reply("❌ No tienes permisos.");
+    }
 
-    if (args.length < 12)
-      return message.reply("❌ Uso: ch!antecedente nombre rut delitos foto placa rango dispositivo comisaria tipo lugar fecha fiscal");
+    if (args.length < 11) {
+      return message.reply("❌ Uso:\nch!antecedente Nombre-Apellido RUT Delitos FotoURL Placa Rango Dispositivo Comisaria Tipo Lugar Fiscal");
+    }
 
     const [
-      nombre, rut, delitos, foto,
-      placa, rango, dispositivo, comisaria, tipo,
-      lugar, fecha, fiscal
+      nombre,
+      rut,
+      delitos,
+      foto,
+      placa,
+      rango,
+      dispositivo,
+      comisaria,
+      tipo,
+      lugar,
+      fiscal
     ] = args;
 
-    const nuevo = new Antecedente({
+    const antecedente = new Antecedente({
       userId: message.author.id,
       nombre,
       rut,
@@ -30,36 +40,40 @@ module.exports = {
       comisaria,
       tipo,
       lugar,
-      fecha,
-      fiscal
+      fiscal,
+      fecha: new Date().toLocaleString("es-CL")
     });
 
-    await nuevo.save();
+    await antecedente.save();
 
     const embed = new EmbedBuilder()
       .setColor("Red")
-      .setTitle("🚔 REGISTRO DE ANTECEDENTE")
-      .setDescription(`
-**Datos Sujeto**
-> Nombre: ${nombre}
-> RUT: ${rut}
-> Delitos: ${delitos}
+      .setTitle("📁 REGISTRO POLICIAL")
 
-**Datos Policial**
-> Placa: ${placa}
-> Rango: ${rango}
-> Dispositivo: ${dispositivo}
-> Comisaría: ${comisaria}
-> Tipo: ${tipo}
+      .addFields(
+        { name: "👤 Datos del Sujeto", value:
+`Nombre: ${nombre}
+RUT: ${rut}
+Delitos: ${delitos}`, inline: false },
 
-**Datos Detención**
-> Lugar: ${lugar}
-> Fecha: ${fecha}
-> Fiscal: ${fiscal}
-      `)
+        { name: "👮 Datos Policiales", value:
+`Placa: ${placa}
+Rango: ${rango}
+Dispositivo: ${dispositivo}
+Comisaría: ${comisaria}
+Tipo: ${tipo}`, inline: false },
+
+        { name: "📍 Detención", value:
+`Lugar: ${lugar}
+Fecha: ${antecedente.fecha}
+Fiscal: ${fiscal}`, inline: false }
+      )
+
       .setImage(foto)
-      .setFooter({ text: "Sistema Policial Chile City RP" });
+      .setFooter({ text: "Sistema Policial | Chile City RP" });
 
     message.reply({ embeds: [embed] });
+
+    client.log(message.guild, `📁 Antecedente creado para ${nombre}`);
   }
 };

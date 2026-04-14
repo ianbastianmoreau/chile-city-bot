@@ -15,7 +15,12 @@ module.exports = {
     const [nombre, rut, patente, vehiculo, institucion, motivo, multa] = args;
 
     const fecha = new Date().toLocaleString("es-CL");
+    
+const existente = await Corral.findOne({ patente });
 
+if (existente) {
+  return message.reply("❌ Este vehículo ya está en corrales.");
+}
     const data = new Corral({
       userId: message.author.id,
       nombre,

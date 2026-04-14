@@ -1,19 +1,18 @@
 const mongoose = require("mongoose");
 
-const vehiculoSchema = new mongoose.Schema({
+const schema = new mongoose.Schema({
   userId: String,
-
   nombre: String,
   rut: String,
   roblox: String,
 
   marca: String,
   modelo: String,
-  patente: String,
+  patente: { type: String, unique: true },
   año: String,
 
   permiso: String,
   revision: String
 });
 
-module.exports = mongoose.model("Vehiculo", vehiculoSchema);
+module.exports = mongoose.model("Vehiculo", schema);
