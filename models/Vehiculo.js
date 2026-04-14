@@ -1,9 +1,7 @@
-const { Schema, model } = require("mongoose");
+const mongoose = require("mongoose");
 
-const vehiculoSchema = new Schema({
+const vehiculoSchema = new mongoose.Schema({
   userId: String,
-
-  slot: Number, // 1, 2 o 3
 
   nombre: String,
   rut: String,
@@ -14,8 +12,8 @@ const vehiculoSchema = new Schema({
   patente: String,
   año: String,
 
-  creadoPor: String,
-  fecha: { type: Date, default: Date.now }
+  permiso: String,
+  revision: String
 });
 
-module.exports = model("Vehiculo", vehiculoSchema);
+module.exports = mongoose.model("Vehiculo", vehiculoSchema);

@@ -149,21 +149,15 @@ client.on('messageCreate', async message => {
 });
 
 // =======================
-// 🎉 BIENVENIDA
-// =======================
-client.on("guildMemberAdd", member => {
-  const canal = member.guild.systemChannel;
-  if (!canal) return;
-
-  canal.send(`👋 Bienvenido ${member} a **Chile City RP**`);
-});
-
-// =======================
 // 🚀 READY
 // =======================
 client.once("ready", () => {
   console.log(`🤖 Bot listo como ${client.user.tag}`);
 });
+
+require("http").createServer((req, res) => {
+  res.end("Bot activo");
+}).listen(process.env.PORT || 3000);
 
 // =======================
 // 🔐 LOGIN

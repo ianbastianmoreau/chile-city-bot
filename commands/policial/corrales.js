@@ -6,47 +6,55 @@ module.exports = {
 
   async execute(message, args, client) {
 
-    if (!client.tienePermisoPolicial(message.member, "corrales")) {
-      return message.reply("❌ No permisos.");
-    }
+    if (!client.tienePermisoPolicial(message.member, "corrales"))
+      return message.reply("❌ No tienes permisos.");
 
-    if (args.length < 7) return message.reply("❌ Uso incorrecto.");
+    if (args.length < 7)
+      return message.reply("❌ Uso: ch!corrales nombre rut patente vehiculo institucion motivo multa");
 
-    const [patente, vehiculo, oficial, institucion, nombre, rut, motivo] = args;
+    const [nombre, rut, patente, vehiculo, institucion, motivo, multa] = args;
 
-    const corral = new Corral({
+    const fecha = new Date().toLocaleString("es-CL");
+
+    const data = new Corral({
       userId: message.author.id,
       nombre,
       rut,
       patente,
       vehiculo,
-      oficial,
+      oficial: message.author.tag,
       institucion,
       motivo,
-      multa: "Pendiente",
-      fecha: new Date().toLocaleString()
+      multa,
+      fecha
     });
 
-    await corral.save();
+    await data.save();
 
     const embed = new EmbedBuilder()
-      .setColor("DarkRed")
-      .setTitle("🚗 VEHÍCULO INCAUTADO")
+      .setColor("Red")
+      .setTitle("🚨 VEHÍCULO INCAUTADO")
       .setDescription(`
-🔢 Patente: ${patente}
-🚘 Vehículo: ${vehiculo}
-
-👮 Oficial: ${oficial}
-🏛 Institución: ${institucion}
+🚗 Vehículo: ${vehiculo}
+🔖 Patente: ${patente}
 
 👤 Propietario: ${nombre}
-🆔 ${rut}
+🆔 RUT: ${rut}
 
-📌 Motivo: ${motivo}
+👮 Oficial: ${message.author.tag}
+🏛 Institución: ${institucion}
 
-📅 ${corral.fecha}
-      `);
+⚠️ Motivo: ${motivo}
+💰 Multa: $${multa}
+
+📅 Fecha: ${fecha}
+
+🚫 Estado: **INCAUTADO**
+      `)
+      .setFooter({ text: "Registro de Corrales | Chile City RP" });
 
     message.reply({ embeds: [embed] });
+
+    client.log(message.guild, `🚨 Vehículo incautado: ${patente}`);
   }
 };

@@ -4,62 +4,61 @@ const Antecedente = require("../../models/Antecedente");
 module.exports = {
   name: "antecedente",
 
-  async execute(message, args) {
+  async execute(message, args, client) {
 
-    if (args.length < 10) {
-      return message.reply("❌ Uso incompleto.");
-    }
+    if (!client.tienePermisoPolicial(message.member, "antecedentes"))
+      return message.reply("❌ No tienes permisos.");
+
+    if (args.length < 12)
+      return message.reply("❌ Uso: ch!antecedente nombre rut delitos foto placa rango dispositivo comisaria tipo lugar fecha fiscal");
 
     const [
-      nombre,
-      rut,
-      delitos,
-      placa,
-      rango,
-      dispositivo,
-      comisaria,
-      tipo,
-      lugar,
-      fiscal
+      nombre, rut, delitos, foto,
+      placa, rango, dispositivo, comisaria, tipo,
+      lugar, fecha, fiscal
     ] = args;
 
-    const antecedente = new Antecedente({
+    const nuevo = new Antecedente({
       userId: message.author.id,
       nombre,
       rut,
       delitos,
-      foto: `https://robohash.org/${nombre}.png`,
+      foto,
       placa,
       rango,
       dispositivo,
       comisaria,
       tipo,
       lugar,
-      fecha: new Date().toLocaleString(),
+      fecha,
       fiscal
     });
 
-    await antecedente.save();
+    await nuevo.save();
 
     const embed = new EmbedBuilder()
       .setColor("Red")
-      .setTitle("🚔 ANTECEDENTE REGISTRADO")
-      .setImage(antecedente.foto)
+      .setTitle("🚔 REGISTRO DE ANTECEDENTE")
       .setDescription(`
-👤 ${nombre}
-🆔 ${rut}
+**Datos Sujeto**
+> Nombre: ${nombre}
+> RUT: ${rut}
+> Delitos: ${delitos}
 
-⚖️ Delitos: ${delitos}
+**Datos Policial**
+> Placa: ${placa}
+> Rango: ${rango}
+> Dispositivo: ${dispositivo}
+> Comisaría: ${comisaria}
+> Tipo: ${tipo}
 
-👮 ${rango} | Placa: ${placa}
-📱 ${dispositivo}
-🏛 ${comisaria}
-📌 Tipo: ${tipo}
-
-📍 ${lugar}
-📅 ${antecedente.fecha}
-⚖️ Fiscal: ${fiscal}
-      `);
+**Datos Detención**
+> Lugar: ${lugar}
+> Fecha: ${fecha}
+> Fiscal: ${fiscal}
+      `)
+      .setImage(foto)
+      .setFooter({ text: "Sistema Policial Chile City RP" });
 
     message.reply({ embeds: [embed] });
   }

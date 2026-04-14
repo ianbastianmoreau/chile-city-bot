@@ -6,50 +6,67 @@ module.exports = {
 
   async execute(message, args) {
 
-    if (args.length < 7) {
-      return message.reply("❌ Uso: ch!registrarvehiculo slot usuario nombre rut roblox marca modelo patente año");
-    }
+    // 👉 Validación básica
+    if (args.length < 7)
+      return message.reply("❌ Uso: ch!registrarvehiculo nombre rut roblox marca modelo patente año");
 
-    const slot = parseInt(args[0]);
-    const user = message.mentions.users.first();
+    const [nombre, rut, roblox, marca, modelo, patenteRaw, año] = args;
 
-    if (!user) return message.reply("❌ Debes mencionar un usuario.");
-    if (![1,2,3].includes(slot)) return message.reply("❌ Slot debe ser 1, 2 o 3.");
+    const patente = patenteRaw.toUpperCase();
 
-    const [_, __, nombre, rut, roblox, marca, modelo, patente, año] = args;
+    // 🔥 FUNCIONES PRO (CHILENAS)
+    const generarEstado = () => {
+      return Math.random() < 0.7 ? "Vigente" : "Vencido";
+    };
 
-    const existe = await Vehiculo.findOne({ userId: user.id, slot });
-    if (existe) return message.reply("❌ Ese slot ya está ocupado.");
+    const generarFecha = () => {
+      const hoy = new Date();
+      hoy.setMonth(hoy.getMonth() + Math.floor(Math.random() * 12));
+      return hoy.toLocaleDateString("es-CL");
+    };
 
+    // 👉 Verificar si ya existe
+    const existe = await Vehiculo.findOne({ patente });
+    if (existe) return message.reply("❌ Esta patente ya está registrada.");
+
+    // 🔥 CREAR VEHÍCULO
     const vehiculo = new Vehiculo({
-      userId: user.id,
-      slot,
+      userId: message.author.id,
+
       nombre,
       rut,
       roblox,
+
       marca,
       modelo,
       patente,
       año,
-      creadoPor: message.author.id
+
+      permiso: `${generarEstado()} (vence: ${generarFecha()})`,
+      revision: `${generarEstado()} (vence: ${generarFecha()})`
     });
 
     await vehiculo.save();
 
+    // 🎨 EMBED PRO
     const embed = new EmbedBuilder()
       .setColor("Blue")
-      .setTitle(`🚗 REGISTRO VEHICULAR #${slot}`)
+      .setTitle("🚗 REGISTRO VEHICULAR EXITOSO")
       .setDescription(`
-👤 ${nombre}
-🆔 ${rut}
-🎮 ${roblox}
+👤 Propietario: ${nombre}
+🆔 RUT: ${rut}
+🎮 Roblox: ${roblox}
 
-🚘 ${marca} ${modelo}
+🚗 Vehículo: ${marca} ${modelo}
+🔖 Patente: ${patente}
 📅 Año: ${año}
-🔢 Patente: ${patente}
 
-👮 Registrado por: ${message.author}
+📄 Permiso Circulación: ${vehiculo.permiso}
+🔧 Revisión Técnica: ${vehiculo.revision}
+
+📊 Estado: 🟢 Registrado correctamente
       `)
+      .setFooter({ text: "Registro Civil Vehicular | Chile City RP" })
       .setTimestamp();
 
     message.reply({ embeds: [embed] });

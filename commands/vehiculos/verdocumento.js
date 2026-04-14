@@ -1,54 +1,52 @@
 const { EmbedBuilder } = require("discord.js");
 const Vehiculo = require("../../models/Vehiculo");
+const Corral = require("../../models/Corral");
 
 module.exports = {
   name: "ver-documento",
 
   async execute(message, args) {
 
-    const slot = parseInt(args[0]);
-    const user = message.mentions.users.first() || message.author;
+    if (!args[0])
+      return message.reply("❌ Uso: ch!ver-documento patente");
 
-    if (![1,2,3].includes(slot)) {
-      return message.reply("❌ Slot inválido (1-3).");
+    const patente = args[0].toUpperCase();
+
+    const vehiculo = await Vehiculo.findOne({ patente });
+    if (!vehiculo) return message.reply("❌ Vehículo no encontrado.");
+
+    // 🔥 VERIFICAR SI ESTÁ EN CORRALES
+    const incautado = await Corral.findOne({ patente });
+
+    let estado = "🟢 Vehículo Disponible";
+    let detalle = "Sin problemas";
+
+    if (incautado) {
+      estado = "🚨 VEHÍCULO INCAUTADO";
+      detalle = `Incautado por ${incautado.institucion}`;
     }
 
-    const data = await Vehiculo.findOne({ userId: user.id, slot });
-    if (!data) return message.reply("❌ No hay vehículo en ese registro.");
-
-    const Corral = require("../../models/Corral");
-
-const incautado = await Corral.findOne({ patente: data.patente, activo: true });
-
-if (incautado) {
-  embed.addFields({
-    name: "🚨 ESTADO",
-    value: `Incautado por ${incautado.institucion}`
-  });
-}
-
     const embed = new EmbedBuilder()
-      .setColor("#0f172a")
-      .setTitle("📄 REGISTRO VEHICULAR OFICIAL")
-      .setThumbnail("attachment://logo.png")
-      .setImage(`https://robohash.org/${data.roblox}.png`)
-      .addFields(
-        { name: "👤 PROPIETARIO", value: `${data.nombre}`, inline: true },
-        { name: "🆔 RUT", value: `${data.rut}`, inline: true },
-        { name: "🎮 ROBLOX", value: `${data.roblox}`, inline: true },
+      .setColor(incautado ? "Red" : "Green")
+      .setTitle("📄 DOCUMENTO VEHICULAR")
+      .setDescription(`
+🚗 Vehículo: ${vehiculo.marca} ${vehiculo.modelo}
+🔖 Patente: ${vehiculo.patente}
+📅 Año: ${vehiculo.año}
 
-        { name: "🚘 VEHÍCULO", value: `${data.marca} ${data.modelo}`, inline: true },
-        { name: "📅 AÑO", value: `${data.año}`, inline: true },
-        { name: "🔢 PATENTE", value: `${data.patente}`, inline: true },
+👤 Propietario: ${vehiculo.nombre}
+🆔 RUT: ${vehiculo.rut}
+🎮 Roblox: ${vehiculo.roblox}
 
-        { name: "📁 REGISTRO", value: `#${slot}`, inline: true }
-      )
-      .setFooter({ text: "Chile City RP | Documento Oficial" })
+📄 Permiso Circulación: ${vehiculo.permiso}
+🔧 Revisión Técnica: ${vehiculo.revision}
+
+📊 Estado: ${estado}
+📌 Detalle: ${detalle}
+      `)
+      .setFooter({ text: "Registro Nacional de Vehículos | Chile City RP" })
       .setTimestamp();
 
-    message.reply({
-      embeds: [embed],
-      files: ["./assets/logo.png"]
-    });
+    message.reply({ embeds: [embed] });
   }
 };

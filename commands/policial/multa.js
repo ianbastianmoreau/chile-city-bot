@@ -6,48 +6,52 @@ module.exports = {
 
   async execute(message, args, client) {
 
-    if (!client.tienePermisoPolicial(message.member, "multas")) {
+    if (!client.tienePermisoPolicial(message.member, "multas"))
       return message.reply("❌ No tienes permisos.");
-    }
 
-    if (args.length < 9) return message.reply("❌ Uso incorrecto.");
+    if (args.length < 8)
+      return message.reply("❌ Uso: ch!multa nombre rut articulos placa rango dispositivo comisaria lugar");
 
-    const [nombre, rut, articulos, placa, rango, dispositivo, comisaria, lugar, incautado] = args;
+    const [nombre, rut, articulos, placa, rango, dispositivo, comisaria, lugar] = args;
 
-    const multa = new Multa({
+    const fecha = new Date().toLocaleString("es-CL");
+
+    const data = new Multa({
       userId: message.author.id,
       nombre,
       rut,
       articulos,
-      foto: `https://robohash.org/${nombre}.png`,
       placa,
       rango,
       dispositivo,
       comisaria,
       lugar,
-      fecha: new Date().toLocaleString(),
-      vehiculoIncautado: incautado
+      fecha,
+      vehiculo: "No especificado"
     });
 
-    await multa.save();
+    await data.save();
 
     const embed = new EmbedBuilder()
       .setColor("Orange")
-      .setTitle("📄 MULTA REGISTRADA")
-      .setImage(multa.foto)
+      .setTitle("💸 MULTA REGISTRADA")
       .setDescription(`
-👤 ${nombre}
-🆔 ${rut}
+👤 Nombre: ${nombre}
+🆔 RUT: ${rut}
 
-📜 Artículos: ${articulos}
+⚖️ Artículos: ${articulos}
 
-👮 ${rango} | ${placa}
-🏛 ${comisaria}
+👮 Placa: ${placa}
+🎖 Rango: ${rango}
+📱 Dispositivo: ${dispositivo}
+🏛 Comisaría: ${comisaria}
 
-📍 ${lugar}
-🚗 Incautado: ${incautado}
+📍 Lugar: ${lugar}
+📅 Fecha: ${fecha}
       `);
 
     message.reply({ embeds: [embed] });
+
+    client.log(message.guild, `💸 Multa aplicada a ${nombre}`);
   }
 };

@@ -1,3 +1,4 @@
+const { EmbedBuilder } = require("discord.js");
 const Corral = require("../../models/Corral");
 
 module.exports = {
@@ -5,19 +6,34 @@ module.exports = {
 
   async execute(message, args, client) {
 
-    if (!client.tienePermisoPolicial(message.member, "corrales")) {
-      return message.reply("❌ No permisos.");
-    }
+    if (!client.tienePermisoPolicial(message.member, "corrales"))
+      return message.reply("❌ No tienes permisos.");
+
+    if (args.length < 1)
+      return message.reply("❌ Uso: ch!liberar-corrales patente");
 
     const patente = args[0];
-    if (!patente) return message.reply("❌ Indica patente.");
 
-    const data = await Corral.findOne({ patente, activo: true });
-    if (!data) return message.reply("❌ No está en corrales.");
+    const data = await Corral.findOne({ patente });
+    if (!data) return message.reply("❌ Vehículo no está en corrales.");
 
-    data.activo = false;
-    await data.save();
+    await Corral.deleteOne({ patente });
 
-    message.reply(`✅ Vehículo ${patente} liberado.`);
+    const embed = new EmbedBuilder()
+      .setColor("Green")
+      .setTitle("✅ VEHÍCULO LIBERADO")
+      .setDescription(`
+🚗 Vehículo: ${data.vehiculo}
+🔖 Patente: ${data.patente}
+
+👤 Propietario: ${data.nombre}
+
+👮 Liberado por: ${message.author.tag}
+📅 Fecha: ${new Date().toLocaleString("es-CL")}
+      `);
+
+    message.reply({ embeds: [embed] });
+
+    client.log(message.guild, `✅ Vehículo liberado: ${patente}`);
   }
 };

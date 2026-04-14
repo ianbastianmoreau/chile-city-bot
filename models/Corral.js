@@ -1,7 +1,8 @@
-const { Schema, model } = require("mongoose");
+const mongoose = require("mongoose");
 
-const corralSchema = new Schema({
+const corralSchema = new mongoose.Schema({
   userId: String,
+
   nombre: String,
   rut: String,
 
@@ -14,8 +15,7 @@ const corralSchema = new Schema({
   motivo: String,
   multa: String,
 
-  fecha: String,
-  activo: { type: Boolean, default: true }
+  fecha: String
 });
 
-module.exports = model("Corral", corralSchema);
+module.exports = mongoose.model("Corral", corralSchema);

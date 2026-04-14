@@ -1,6 +1,7 @@
-const { Schema, model } = require("mongoose");
+const mongoose = require("mongoose");
 
-const antecedenteSchema = new Schema({
+const antecedenteSchema = new mongoose.Schema({
+
   userId: String,
   nombre: String,
   rut: String,
@@ -16,6 +17,7 @@ const antecedenteSchema = new Schema({
   lugar: String,
   fecha: String,
   fiscal: String
+
 });
 
-module.exports = model("Antecedente", antecedenteSchema);
+module.exports = mongoose.model("Antecedente", antecedenteSchema);
